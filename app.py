@@ -146,20 +146,25 @@ class JAI:
     
     @staticmethod
     def generate_response(user_message, lesson_content="", lesson_title="", user_id="anonymous"):
-        """Generate response using Hugging Face AI"""
+        """Generate response using Hugging Face AI with detailed error logging"""
         
         if not HF_API_KEY:
-            return "⚠️ JAI needs an API key. Please ask Joshua to configure HF_API_KEY."
+            logger.error("HF_API_KEY not configured")
+            return "⚠️ JAI needs an API key. Please ask Joshua to configure HF_API_KEY in Render environment variables."
         
         # Save user question to database
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute('''
-            INSERT INTO chat_history (user_id, message, lesson_id, created_at)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, user_message[:500], current_lesson_id, datetime.now()))
-        conn.commit()
-        conn.close()
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute('''
+                INSERT INTO chat_history (user_id, message, lesson_id, created_at)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, user_message[:500], current_lesson_id, datetime.now()))
+            conn.commit()
+            conn.close()
+            logger.info(f"📝 Saved question from {user_id}: {user_message[:50]}...")
+        except Exception as e:
+            logger.error(f"Database save error: {e}")
         
         # JAI's simple, clean prompt
         prompt = f"""You are JAI (Joshua's Artificial Intelligence), a friendly cyber security teacher created by Joshua Giwa from Yukuben, Nigeria.
@@ -192,24 +197,42 @@ JAI:"""
                 }
             }
             
+            # Log request details
+            logger.info(f"🤖 Sending request to Hugging Face API")
+            logger.info(f"   Model: {HF_MODEL}")
+            logger.info(f"   API Key: {HF_API_KEY[:15]}... (length: {len(HF_API_KEY)})")
+            logger.info(f"   Prompt length: {len(prompt)} characters")
+            
             response = requests.post(
                 f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}",
                 headers=headers,
                 json=payload,
-                timeout=30
+                timeout=60
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    generated = result[0].get('generated_text', '')
-                    if "JAI:" in generated:
-                        response_text = generated.split("JAI:")[-1].strip()
-                    else:
-                        response_text = generated.strip()
-                    
-                    if response_text:
-                        # Save response to database
+            # Log response details
+            logger.info(f"📡 Response status: {response.status_code}")
+            logger.info(f"   Response headers: {dict(response.headers)}")
+            
+            if response.status_code != 200:
+                logger.error(f"❌ API Error Response Body: {response.text[:500]}")
+                return f"❌ API Error {response.status_code}: {response.text[:200]}"
+            
+            result = response.json()
+            logger.info(f"✅ API Response received successfully")
+            
+            if isinstance(result, list) and len(result) > 0:
+                generated = result[0].get('generated_text', '')
+                logger.info(f"📝 Generated text length: {len(generated)}")
+                
+                if "JAI:" in generated:
+                    response_text = generated.split("JAI:")[-1].strip()
+                else:
+                    response_text = generated.strip()
+                
+                if response_text:
+                    # Save response to database
+                    try:
                         conn = get_db()
                         cur = conn.cursor()
                         cur.execute('''
@@ -223,16 +246,26 @@ JAI:"""
                         ''', (response_text[:1000], user_id))
                         conn.commit()
                         conn.close()
-                        return response_text
+                        logger.info(f"✅ Response saved to database")
+                    except Exception as e:
+                        logger.error(f"Database save error: {e}")
+                    
+                    return response_text
             
-            logger.error(f"JAI API error: {response.status_code}")
-            return "🤖 JAI is having a moment. Please try again!"
+            logger.error("No valid response generated from API")
+            return "⚠️ No response generated from API"
             
         except requests.exceptions.Timeout:
-            return "🌐 JAI is thinking. Please try again in a moment."
+            logger.error("⏰ Request timeout - API took too long")
+            return "⏰ Request timeout. The AI service is taking too long to respond. Please try again."
+            
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"🔌 Connection error: {e}")
+            return f"🔌 Connection error: Cannot reach Hugging Face API. Please check your internet connection."
+            
         except Exception as e:
-            logger.error(f"JAI error: {e}")
-            return "💡 JAI needs a moment. Please refresh and try again!"
+            logger.error(f"💥 Unexpected error: {type(e).__name__}: {str(e)}", exc_info=True)
+            return f"💥 Error: {type(e).__name__}: {str(e)[:100]}"
 
 # ========== ROUTES ==========
 
@@ -252,7 +285,9 @@ def admin_login():
     password = request.form.get('password')
     if password == ADMIN_PASSWORD:
         session['admin_logged_in'] = True
+        logger.info("Admin logged in successfully")
         return redirect('/admin')
+    logger.warning("Failed admin login attempt")
     return '''
         <script>
             alert("Wrong password!");
@@ -270,6 +305,7 @@ def admin_panel():
 def admin_logout():
     """Logout admin"""
     session.pop('admin_logged_in', None)
+    logger.info("Admin logged out")
     return redirect('/')
 
 @app.route('/admin/upload', methods=['POST'])
@@ -424,6 +460,8 @@ def chat():
     if not message:
         return jsonify({'error': 'Message required'}), 400
     
+    logger.info(f"💬 Chat from {user_id}: {message[:100]}...")
+    
     response = JAI.generate_response(
         message,
         current_lesson_content,
@@ -474,7 +512,8 @@ def health():
         'lesson_loaded': current_lesson_id is not None,
         'lesson': current_lesson_title,
         'hf_api': bool(HF_API_KEY),
-        'hf_model': HF_MODEL
+        'hf_model': HF_MODEL,
+        'api_key_length': len(HF_API_KEY) if HF_API_KEY else 0
     })
 
 @app.route('/about')
@@ -505,5 +544,7 @@ if __name__ == '__main__':
     logger.info("🤖 JAI - Joshua's Artificial Intelligence starting...")
     logger.info(f"📍 Creator: Joshua Giwa from Yukuben, Nigeria")
     logger.info(f"📚 Current lesson: {current_lesson_title}")
+    logger.info(f"🔑 HF_API_KEY configured: {bool(HF_API_KEY)}")
+    logger.info(f"🤖 HF_MODEL: {HF_MODEL}")
     logger.info(f"🚀 Server running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT, debug=False)
