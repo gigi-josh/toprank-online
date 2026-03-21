@@ -192,12 +192,12 @@ JAI:"""
                 }
             }
             
-            response = requests.post(
-                f"https://api-inference.huggingface.co/models/{HF_MODEL}",
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
+          response = requests.post(
+    f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}",
+    headers=headers,
+    json=payload,
+    timeout=30
+)
             
             if response.status_code == 200:
                 result = response.json()
