@@ -25,11 +25,11 @@ PORT = int(os.getenv('PORT', 5000))
 HF_API_KEY = os.getenv('HF_API_KEY')
 HF_MODEL = os.getenv('HF_MODEL', 'google/flan-t5-large')
 
-# Handle /data directory safely
-# Use local directory (works on free tier)
+# Handle data directory safely (works on free tier)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, 'jai_academy.db')
+
 # ========== DATABASE FUNCTIONS ==========
 
 def get_db():
@@ -192,12 +192,12 @@ JAI:"""
                 }
             }
             
-          response = requests.post(
-    f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}",
-    headers=headers,
-    json=payload,
-    timeout=30
-)
+            response = requests.post(
+                f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
             
             if response.status_code == 200:
                 result = response.json()
