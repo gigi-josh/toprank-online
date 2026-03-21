@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
 PORT = int(os.getenv('PORT', 5000))
 HF_API_KEY = os.getenv('HF_API_KEY')
-HF_MODEL = os.getenv('HF_MODEL', 'google/flan-t5-large')
+HF_MODEL = os.getenv('HF_MODEL', 'microsoft/DialoGPT-small')
 
 # Handle data directory safely (works on free tier)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -146,13 +146,12 @@ class JAI:
     
     @staticmethod
     def generate_response(user_message, lesson_content="", lesson_title="", user_id="anonymous"):
-        """Generate response using Hugging Face AI with detailed error logging"""
+        """Generate response using DialoGPT"""
         
         if not HF_API_KEY:
-            logger.error("HF_API_KEY not configured")
-            return "⚠️ JAI needs an API key. Please ask Joshua to configure HF_API_KEY in Render environment variables."
+            return "⚠️ JAI needs an API key. Please ask Joshua to configure HF_API_KEY."
         
-        # Save user question to database
+        # Save user question
         try:
             conn = get_db()
             cur = conn.cursor()
@@ -162,23 +161,17 @@ class JAI:
             ''', (user_id, user_message[:500], current_lesson_id, datetime.now()))
             conn.commit()
             conn.close()
-            logger.info(f"📝 Saved question from {user_id}: {user_message[:50]}...")
+            logger.info(f"📝 Saved question from {user_id}")
         except Exception as e:
-            logger.error(f"Database save error: {e}")
+            logger.error(f"Database error: {e}")
         
-        # JAI's simple, clean prompt
-        prompt = f"""You are JAI (Joshua's Artificial Intelligence), a friendly cyber security teacher created by Joshua Giwa from Yukuben, Nigeria.
-
-Current lesson: {lesson_title}
-
-Lesson content:
-{lesson_content[:2500] if lesson_content else "Teach general cyber security with Nigerian examples."}
-
-Student: {user_message}
-
-Teach clearly. Use Nigerian examples. Be encouraging. Keep the student on track with the lesson.
-
-JAI:"""
+        # Build context from lesson if available
+        context = ""
+        if lesson_content and lesson_title != "No lesson uploaded":
+            context = f"Current lesson: {lesson_title}\n\n"
+        
+        # Simple conversation prompt for DialoGPT
+        prompt = f"{context}Student: {user_message}\nJAI:"
         
         try:
             headers = {
@@ -189,83 +182,66 @@ JAI:"""
             payload = {
                 "inputs": prompt,
                 "parameters": {
-                    "max_new_tokens": 300,
-                    "temperature": 0.7,
-                    "top_p": 0.9,
+                    "max_new_tokens": 150,
+                    "temperature": 0.8,
                     "do_sample": True,
-                    "repetition_penalty": 1.1
+                    "top_p": 0.9
                 }
             }
             
-            # Log request details
-            logger.info(f"🤖 Sending request to Hugging Face API")
-            logger.info(f"   Model: {HF_MODEL}")
-            logger.info(f"   API Key: {HF_API_KEY[:15]}... (length: {len(HF_API_KEY)})")
-            logger.info(f"   Prompt length: {len(prompt)} characters")
+            logger.info(f"🤖 Calling DialoGPT")
             
             response = requests.post(
-                f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}",
+                "https://api-inference.huggingface.co/models/microsoft/DialoGPT-small",
                 headers=headers,
                 json=payload,
                 timeout=60
             )
             
-            # Log response details
             logger.info(f"📡 Response status: {response.status_code}")
-            logger.info(f"   Response headers: {dict(response.headers)}")
             
-            if response.status_code != 200:
-                logger.error(f"❌ API Error Response Body: {response.text[:500]}")
-                return f"❌ API Error {response.status_code}: {response.text[:200]}"
-            
-            result = response.json()
-            logger.info(f"✅ API Response received successfully")
-            
-            if isinstance(result, list) and len(result) > 0:
-                generated = result[0].get('generated_text', '')
-                logger.info(f"📝 Generated text length: {len(generated)}")
-                
-                if "JAI:" in generated:
-                    response_text = generated.split("JAI:")[-1].strip()
-                else:
-                    response_text = generated.strip()
-                
-                if response_text:
-                    # Save response to database
-                    try:
-                        conn = get_db()
-                        cur = conn.cursor()
-                        cur.execute('''
-                            UPDATE chat_history 
-                            SET response = ? 
-                            WHERE id = (
-                                SELECT id FROM chat_history 
-                                WHERE user_id = ? 
-                                ORDER BY created_at DESC LIMIT 1
-                            )
-                        ''', (response_text[:1000], user_id))
-                        conn.commit()
-                        conn.close()
-                        logger.info(f"✅ Response saved to database")
-                    except Exception as e:
-                        logger.error(f"Database save error: {e}")
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    generated = result[0].get('generated_text', '')
+                    # Extract JAI's response
+                    if "JAI:" in generated:
+                        response_text = generated.split("JAI:")[-1].strip()
+                    else:
+                        response_text = generated.strip()
                     
-                    return response_text
+                    if response_text:
+                        # Save response
+                        try:
+                            conn = get_db()
+                            cur = conn.cursor()
+                            cur.execute('''
+                                UPDATE chat_history 
+                                SET response = ? 
+                                WHERE id = (
+                                    SELECT id FROM chat_history 
+                                    WHERE user_id = ? 
+                                    ORDER BY created_at DESC LIMIT 1
+                                )
+                            ''', (response_text[:1000], user_id))
+                            conn.commit()
+                            conn.close()
+                        except Exception as e:
+                            logger.error(f"Save error: {e}")
+                        
+                        return response_text
             
-            logger.error("No valid response generated from API")
-            return "⚠️ No response generated from API"
-            
+            if response.status_code == 503:
+                return "🔄 JAI is waking up! The first response takes 30-60 seconds. Please try again in a moment."
+            else:
+                logger.error(f"API Error: {response.status_code} - {response.text[:200]}")
+                return f"⏳ JAI is loading. Please wait 30 seconds and try again."
+                
         except requests.exceptions.Timeout:
-            logger.error("⏰ Request timeout - API took too long")
-            return "⏰ Request timeout. The AI service is taking too long to respond. Please try again."
-            
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"🔌 Connection error: {e}")
-            return f"🔌 Connection error: Cannot reach Hugging Face API. Please check your internet connection."
-            
+            return "🌐 JAI is thinking. Please try again in a moment."
         except Exception as e:
-            logger.error(f"💥 Unexpected error: {type(e).__name__}: {str(e)}", exc_info=True)
-            return f"💥 Error: {type(e).__name__}: {str(e)[:100]}"
+            logger.error(f"JAI error: {e}")
+            return f"💡 JAI needs a moment. Please refresh and try again."
 
 # ========== ROUTES ==========
 
@@ -285,9 +261,9 @@ def admin_login():
     password = request.form.get('password')
     if password == ADMIN_PASSWORD:
         session['admin_logged_in'] = True
-        logger.info("Admin logged in successfully")
+        logger.info("Admin logged in")
         return redirect('/admin')
-    logger.warning("Failed admin login attempt")
+    logger.warning("Failed admin login")
     return '''
         <script>
             alert("Wrong password!");
@@ -305,7 +281,6 @@ def admin_panel():
 def admin_logout():
     """Logout admin"""
     session.pop('admin_logged_in', None)
-    logger.info("Admin logged out")
     return redirect('/')
 
 @app.route('/admin/upload', methods=['POST'])
@@ -325,7 +300,6 @@ def admin_upload():
         return jsonify({'error': 'File must be PDF'}), 400
     
     try:
-        # Extract text from PDF
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         extracted_text = ""
         for page_num, page in enumerate(pdf_reader.pages):
@@ -335,29 +309,21 @@ def admin_upload():
                 extracted_text += text
         
         if not extracted_text.strip():
-            return jsonify({'error': 'No text could be extracted from PDF'}), 400
+            return jsonify({'error': 'No text could be extracted'}), 400
         
         title = pdf_file.filename.replace('.pdf', '')
         
-        # Save to database
         conn = get_db()
         cur = conn.cursor()
-        
-        # Deactivate all lessons
         cur.execute("UPDATE lessons SET is_active = 0")
-        
-        # Insert new lesson
         cur.execute('''
             INSERT INTO lessons (title, filename, content, pages, is_active, uploaded_by, uploaded_at)
             VALUES (?, ?, ?, ?, 1, ?, ?)
         ''', (title, pdf_file.filename, extracted_text, len(pdf_reader.pages), 'admin', datetime.now()))
-        
         conn.commit()
         conn.close()
         
-        # Reload current lesson
         load_current_lesson()
-        
         logger.info(f"📚 Lesson uploaded: {title}")
         
         return jsonify({
@@ -394,21 +360,14 @@ def switch_lesson(lesson_id):
     
     conn = get_db()
     cur = conn.cursor()
-    
-    # Deactivate all
     cur.execute("UPDATE lessons SET is_active = 0")
-    # Activate selected
     cur.execute("UPDATE lessons SET is_active = 1 WHERE id = ?", (lesson_id,))
-    
     conn.commit()
     conn.close()
     
     load_current_lesson()
     
-    return jsonify({
-        'success': True,
-        'lesson': current_lesson_title
-    })
+    return jsonify({'success': True, 'lesson': current_lesson_title})
 
 @app.route('/admin/backup', methods=['GET'])
 @login_required
@@ -495,10 +454,7 @@ def teach():
     conn.commit()
     conn.close()
     
-    return jsonify({
-        'success': True,
-        'message': 'Thank you! JAI will learn from your suggestion.'
-    })
+    return jsonify({'success': True, 'message': 'Thank you! JAI will learn from your suggestion.'})
 
 @app.route('/health')
 def health():
@@ -512,8 +468,7 @@ def health():
         'lesson_loaded': current_lesson_id is not None,
         'lesson': current_lesson_title,
         'hf_api': bool(HF_API_KEY),
-        'hf_model': HF_MODEL,
-        'api_key_length': len(HF_API_KEY) if HF_API_KEY else 0
+        'hf_model': HF_MODEL
     })
 
 @app.route('/about')
