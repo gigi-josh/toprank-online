@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAI Admin | Joshua's Artificial Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0f1e 0%, #0a1a2a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(15, 25, 45, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #00d4ff, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 80, 80, 0.2);
+            border: 1px solid rgba(255, 80, 80, 0.5);
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: #ff8888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 80, 80, 0.3);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(15, 25, 45, 0.8);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(15, 25, 45, 0.8);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed rgba(0, 212, 255, 0.5);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            padding: 12px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 10px 0;
+        }
+
+        .file-label:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #00d4ff, #00aa88);
+            border: none;
+            padding: 12px 32px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .upload-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 100, 0.1);
+            color: #00ffaa;
+            border: 1px solid rgba(0, 255, 100, 0.3);
+        }
+
+        .status.error {
+            background: rgba(255, 80, 80, 0.1);
+            color: #ff8888;
+            border: 1px solid rgba(255, 80, 80, 0.3);
+        }
+
+        .status.loading {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+
+        /* Lesson List */
+        .lesson-list {
+            list-style: none;
+        }
+
+        .lesson-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .lesson-info {
+            flex: 1;
+        }
+
+        .lesson-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .lesson-meta {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .active-badge {
+            background: #00ffaa;
+            color: #0a0f1e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .switch-btn {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .switch-btn:hover {
+            background: rgba(0, 212, 255, 0.3);
+        }
+
+        .current-lesson {
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .current-lesson strong {
+            color: #00d4ff;
+        }
+
+        .backup-btn {
+            background: rgba(100, 100, 200, 0.2);
+            border: 1px solid rgba(100, 100, 200, 0.5);
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-right: 10px;
+        }
+
+        .refresh-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        hr {
+            border-color: rgba(255, 255, 255, 0.05);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>🤖 JAI Admin</h1>
+                <p>Joshua's Artificial Intelligence — Control Center</p>
+            </div>
+            <a href="/admin/logout" class="logout-btn">🔐 Logout</a>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-number">-</div>
+                <div class="stat-label">Total Lessons</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">-</div>
+                <div class="stat-label">Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">-</div>
+                <div class="stat-label">Questions Asked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">-</div>
+                <div class="stat-label">Pending Suggestions</div>
+            </div>
+        </div>
+
+        <!-- Current Lesson -->
+        <div class="card">
+            <h2>📖 Current Lesson</h2>
+            <div class="current-lesson" id="currentLesson">
+                Loading...
+            </div>
+        </div>
+
+        <!-- Upload New Lesson -->
+        <div class="card">
+            <h2>📤 Upload New Lesson</h2>
+            <div class="upload-area">
+                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
+                <label for="pdfFile" class="file-label">📄 Choose PDF File</label>
+                <br>
+                <button onclick="uploadLesson()" class="upload-btn">⬆️ Upload & Publish to JAI</button>
+                <div id="uploadStatus" class="status"></div>
+            </div>
+        </div>
+
+        <!-- All Lessons -->
+        <div class="card">
+            <div class="flex-between">
+                <h2>📚 All Lessons</h2>
+                <button onclick="loadLessons()" class="refresh-btn">🔄 Refresh</button>
+            </div>
+            <ul class="lesson-list" id="lessonList">
+                <li style="padding: 20px; text-align: center; color: #64748b;">Loading lessons...</li>
+            </ul>
+        </div>
+
+        <!-- Database Management -->
+        <div class="card">
+            <h2>💾 Database Management</h2>
+            <button onclick="downloadBackup()" class="backup-btn">📥 Download Backup</button>
+            <p style="font-size: 0.75rem; color: #64748b; margin-top: 12px;">
+                Backup your database to keep all lessons and student data safe.
+            </p>
+        </div>
+
+        <hr>
+
+        <div style="text-align: center; padding: 20px; color: #4a5568; font-size: 0.75rem;">
+            🤖 JAI — Joshua's Artificial Intelligence | Created by Joshua Giwa | Yukuben, Nigeria
+        </div>
+    </div>
+
+    <script>
+        // Load all data on page load
+        loadStats();
+        loadCurrentLesson();
+        loadLessons();
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/admin/stats');
+                const data = await response.json();
+                
+                document.querySelectorAll('.stat-card')[0].querySelector('.stat-number').textContent = data.total_lessons || 0;
+                document.querySelectorAll('.stat-card')[1].querySelector('.stat-number').textContent = data.total_students || 0;
+                document.querySelectorAll('.stat-card')[2].querySelector('.stat-number').textContent = data.total_questions || 0;
+                document.querySelectorAll('.stat-card')[3].querySelector('.stat-number').textContent = data.pending_suggestions || 0;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load current lesson
+        async function loadCurrentLesson() {
+            try {
+                const response = await fetch('/admin/lesson');
+                const data = await response.json();
+                const container = document.getElementById('currentLesson');
+                
+                if (data.loaded) {
+                    container.innerHTML = `
+                        <strong>📖 ${data.lesson}</strong><br>
+                        <span style="font-size: 0.8rem; color: #94a3b8;">${data.size} characters loaded</span><br>
+                        <span style="color: #00ffaa; font-size: 0.8rem;">✅ Active and ready for students</span>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <span style="color: #ffaa44;">⚠️ No lesson uploaded yet</span><br>
+                        <span style="font-size: 0.8rem;">Upload a PDF to start teaching</span>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading current lesson:', error);
+                document.getElementById('currentLesson').innerHTML = '❌ Error loading lesson';
+            }
+        }
+
+        // Load all lessons
+        async function loadLessons() {
+            try {
+                const response = await fetch('/admin/lessons');
+                const lessons = await response.json();
+                const container = document.getElementById('lessonList');
+                
+                if (lessons.length === 0) {
+                    container.innerHTML = '<li style="padding: 20px; text-align: center; color: #64748b;">No lessons uploaded yet</li>';
+                    return;
+                }
+                
+                container.innerHTML = lessons.map(lesson => `
+                    <li class="lesson-item">
+                        <div class="lesson-info">
+                            <div class="lesson-title">
+                                ${lesson.is_active ? '📘 ' : '📄 '} ${lesson.title}
+                                ${lesson.is_active ? '<span class="active-badge" style="margin-left: 10px;">ACTIVE</span>' : ''}
+                            </div>
+                            <div class="lesson-meta">
+                                ${lesson.pages} pages • Uploaded: ${new Date(lesson.uploaded_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        ${!lesson.is_active ? `
+                            <button onclick="switchLesson(${lesson.id})" class="switch-btn">Make Active</button>
+                        ` : ''}
+                    </li>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading lessons:', error);
+                document.getElementById('lessonList').innerHTML = '<li style="padding: 20px; text-align: center; color: #ff8888;">Error loading lessons</li>';
+            }
+        }
+
+        // Upload lesson
+        async function uploadLesson() {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+            const statusDiv = document.getElementById('uploadStatus');
+            
+            if (!file) {
+                statusDiv.innerHTML = '❌ Please select a PDF file';
+                statusDiv.className = 'status error';
+                return;
+            }
+            
+            if (!file.name.endsWith('.pdf')) {
+                statusDiv.innerHTML = '❌ File must be a PDF';
+                statusDiv.className = 'status error';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('pdf', file);
+            
+            statusDiv.innerHTML = '📤 Uploading to JAI...';
+            statusDiv.className = 'status loading';
+            
+            try {
+                const response = await fetch('/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `✅ ${data.message} (${data.pages} pages, ${data.characters} characters)`;
+                    statusDiv.className = 'status success';
+                    
+                    // Reset and refresh
+                    fileInput.value = '';
+                    loadStats();
+                    loadCurrentLesson();
+                    loadLessons();
+                } else {
+                    statusDiv.innerHTML = `❌ ${data.error}`;
+                    statusDiv.className = 'status error';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+                statusDiv.className = 'status error';
+            }
+        }
+
+        // Switch active lesson
+        async function switchLesson(lessonId) {
+            try {
+                const response = await fetch(`/admin/switch/${lessonId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadLessons();
+                    loadCurrentLesson();
+                    loadStats();
+                } else {
+                    alert('Error switching lesson');
+                }
+            } catch (error) {
+                console.error('Error switching lesson:', error);
+                alert('Error switching lesson');
+            }
+        }
+
+        // Download backup
+        async function downloadBackup() {
+            try {
+                window.location.href = '/admin/backup';
+            } catch (error) {
+                console.error('Error downloading backup:', error);
+                alert('Error downloading backup');
+            }
+        }
+
+        // Auto-refresh stats every 30 seconds
+        setInterval(() => {
+            loadStats();
+            loadCurrentLesson();
+        }, 30000);
+    </script>
+</body>
+</html>
