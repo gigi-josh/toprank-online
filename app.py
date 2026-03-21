@@ -25,11 +25,17 @@ PORT = int(os.getenv('PORT', 5000))
 HF_API_KEY = os.getenv('HF_API_KEY')
 HF_MODEL = os.getenv('HF_MODEL', 'google/flan-t5-large')
 
-# Persistent disk path for Render
+# Handle /data directory safely
 DATA_DIR = '/data'
-os.makedirs(DATA_DIR, exist_ok=True)
-DB_PATH = os.path.join(DATA_DIR, 'jai_academy.db')
+try:
+    os.makedirs(DATA_DIR, exist_ok=True)
+except PermissionError:
+    # Fallback to current directory if /data isn't writable
+    DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+    os.makedirs(DATA_DIR, exist_ok=True)
+    print(f"⚠️ Using fallback data directory: {DATA_DIR}")
 
+DB_PATH = os.path.join(DATA_DIR, 'jai_academy.db')
 # ========== DATABASE FUNCTIONS ==========
 
 def get_db():
