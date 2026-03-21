@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAI Admin | Joshua's Artificial Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0f1e 0%, #0a1a2a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .login-card {
+            background: rgba(15, 25, 45, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 40px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #00d4ff, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .logo .badge {
+            display: inline-block;
+            background: rgba(0, 212, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: #00d4ff;
+            margin-top: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 40px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        .input-group input::placeholder {
+            color: #4a5568;
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #00d4ff, #00aa88);
+            border: none;
+            border-radius: 40px;
+            padding: 14px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #0a0f1e;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: #4a5568;
+            font-size: 0.7rem;
+        }
+
+        .footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .error-msg {
+            background: rgba(255, 80, 80, 0.2);
+            border: 1px solid rgba(255, 80, 80, 0.5);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            color: #ff8888;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <h1>🤖 JAI</h1>
+                <p>Joshua's Artificial Intelligence</p>
+                <div class="badge">🔐 Admin Access Only</div>
+            </div>
+
+            <div id="errorMsg" class="error-msg"></div>
+
+            <form id="loginForm" method="POST" action="/admin/login">
+                <div class="input-group">
+                    <label>🔑 Password</label>
+                    <input type="password" name="password" placeholder="Enter admin password" autofocus>
+                </div>
+                <button type="submit">Login to Admin Panel</button>
+            </form>
+
+            <div class="footer">
+                <p>🚀 Created by Joshua Giwa | Yukuben, Nigeria</p>
+                <p><a href="/">← Back to JAI Academy</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if there's an error from the server
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error')) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = '❌ Invalid password. Access denied.';
+            errorMsg.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
