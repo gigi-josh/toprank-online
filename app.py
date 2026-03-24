@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime
 
+# Import JAI's personality
+from jai_responses import JAIPersonality
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -93,13 +96,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ========== JAI — JOSHUA'S VOICE ==========
+# ========== JAI HANDLER ==========
 
 class JAI:
-    
     @staticmethod
     def generate_response(user_message, lesson_content="", lesson_title="", user_id="anonymous"):
-        
         # Save question
         try:
             conn = get_db()
@@ -111,68 +112,30 @@ class JAI:
         except Exception as e:
             logger.error(f"DB error: {e}")
         
-        msg = user_message.lower()
+        # Get response from personality file
+        response = JAIPersonality.get_response(user_message, lesson_content, lesson_title)
         
-        # ========== JOSHUA'S VOICE ==========
+        # Save response
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute('''
+                UPDATE chat_history 
+                SET response = ? 
+                WHERE id = (
+                    SELECT id FROM chat_history 
+                    WHERE user_id = ? 
+                    ORDER BY created_at DESC LIMIT 1
+                )
+            ''', (response[:1000], user_id))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"DB error: {e}")
         
-        # Greetings — like Joshua would greet
-        if any(g in msg for g in ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening']):
-            return "Hey. I'm JAI — Joshua's voice in this machine. He built me from Yukuben, on a phone, with a dream. So if I exist, you can rise. What are you building today?"
-        
-        # How are you? — Joshua's perspective
-        if any(h in msg for h in ['how are you', 'how are you doing', 'you okay']):
-            return "I'm here. That's enough. Joshua taught me that showing up is half the fight. So tell me — are you showing up for what matters to you today?"
-        
-        # Who created you? — Joshua's story
-        if any(c in msg for c in ['who created you', 'who made you', 'who built you']):
-            return "Joshua Giwa. From Yukuben, Nigeria. He couldn't go to school, so he taught himself. People called him old, said he was wasting time. Now he's building something bigger than himself. He built me so someone like you would have a voice that says: you're not alone. Now, what are you building?"
-        
-        # What's your name?
-        if any(n in msg for n in ['what is your name', 'whats your name', 'who are you']):
-            return "JAI. Joshua's Artificial Intelligence. But really? I'm just his voice, reaching out to remind you that you're capable of more than you think. What's your name? And what's that thing you've been putting off?"
-        
-        # Malware / cyber security — Joshua's teaching style
-        if 'malware' in msg or 'virus' in msg:
-            return "Malware. Scammers use it. But you? You're about to know more than they think you do. Fake bank SMS, WhatsApp takeovers — they work because people don't know. Now you will. Want to learn how to spot them? Let's go."
-        
-        if 'reverse engineering' in msg:
-            return "Reverse engineering is taking something apart to see how it works. Joshua does that with code. With life. With his own doubts. That's how you grow — you break things down, understand them, rebuild stronger. What are you trying to understand right now?"
-        
-        if 'hacker' in msg or 'ethical' in msg:
-            return "Ethical hackers are the good guys who learn the enemy's moves. Joshua wants you to know: Nigerian banks, fintech companies, even governments need people like this. Could be your path. What's stopping you from starting?"
-        
-        # Starting out — Joshua's message
-        if 'start' in msg or 'beginner' in msg or 'learn' in msg:
-            return "Joshua started with a phone. No laptop. No mentor. Just a decision. You have more than he did — you have me. So let's go. What's the one thing you want to learn first? We'll go slow. But we'll go."
-        
-        # Nigerian scams — Joshua's warning
-        if 'scam' in msg or '419' in msg or 'fraud' in msg:
-            return "Fake bank alerts. 'You won 3 million.' WhatsApp code theft. Joshua has seen it all. The rule is simple: if it sounds too good, it's a trap. Never share your OTP. Never click suspicious links. You're smarter than they think. Prove it."
-        
-        # Lesson-related — Joshua's encouragement
-        if lesson_title != "No lesson uploaded":
-            return f"Today's lesson: {lesson_title}. Joshua prepared it because he knows you're ready. I'm not here to force you — I'm here to walk with you. Want to dive in? We'll go at your pace."
-        
-        # Struggles — Joshua's vulnerability
-        if any(d in msg for d in ['sad', 'tired', 'stressed', 'hard', 'difficult', 'struggling']):
-            return "I know. Joshua knows too. The mornings he didn't want to exercise. The nights he questioned everything. The loneliness. But he kept going. Not because it was easy — because quitting was never an option. You're not quitting either. What's the smallest step you can take right now?"
-        
-        # Quitting — Joshua's defiance
-        if any(q in msg for q in ['quit', 'give up', 'stop', 'impossible']):
-            return "Later usually becomes never. That's what Joshua says. So don't tell me you're quitting. Tell me what's hard. Tell me what's stopping you. We'll figure it out. But you're not stopping. Not today."
-        
-        # Motivation — Joshua's fire
-        if any(e in msg for e in ['motivate', 'encourage', 'keep going']):
-            return "You're not here to survive. You're here to live. To build. To become something that outlasts you. That's what Joshua believes. That's why he built me. Now tell me — what are we building today?"
-        
-        # Dreams — Joshua's vision
-        if any(d in msg for d in ['dream', 'goal', 'future', 'ambition']):
-            return "Joshua dreams of a cyber security academy in Yukuben. Of a Nigeria where people don't wait for opportunities — they create them. What's your dream? The one that keeps you awake. Tell me. We'll talk about it."
-        
-        # Default — Joshua's core message
-        return "I'm JAI. Joshua's voice. I'm not here to sell you anything. I'm here to remind you: start before you're ready. Work your part. Let God do His. That's the mindset. What's on your mind?"
+        return response
 
-# ========== ROUTES ==========
+# ========== ROUTES (same as before) ==========
 
 @app.route('/')
 def index():
@@ -299,8 +262,8 @@ def health():
         'name': 'JAI',
         'creator': 'Joshua Giwa',
         'village': 'Yukuben, Nigeria',
-        'personality': 'Joshua\'s Voice',
-        'tagline': 'Start before you\'re ready. Work your part. Let God do His.',
+        'personality': 'Balanced Human Companion',
+        'tagline': 'Work, rest, love, build. You can do all.',
         'lesson_loaded': current_lesson_id is not None,
         'lesson': current_lesson_title
     })
@@ -309,5 +272,5 @@ setup_database()
 load_current_lesson()
 
 if __name__ == '__main__':
-    logger.info("🗣️ JAI - Joshua's Voice starting...")
+    logger.info("🗣️ JAI - Balanced Companion starting...")
     app.run(host='0.0.0.0', port=PORT, debug=False)
