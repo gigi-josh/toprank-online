@@ -14,6 +14,8 @@
         .badge{display:inline-block;background:rgba(0,255,255,0.1);padding:4px 12px;border-radius:20px;font-size:0.7rem;color:#00d4ff;margin-top:8px;}
         .support-btn{background:linear-gradient(135deg,#ffaa44,#ff8844);border:none;padding:8px 20px;border-radius:40px;font-weight:bold;cursor:pointer;margin-top:10px;font-size:0.8rem;color:#1a1a2e;transition:transform 0.2s;}
         .support-btn:hover{transform:scale(1.02);}
+        .toggle-btn{background:rgba(0,212,255,0.2);border:1px solid rgba(0,212,255,0.5);padding:6px 15px;border-radius:40px;cursor:pointer;font-size:0.7rem;margin-left:10px;}
+        .toggle-btn.active{background:rgba(0,212,255,0.5);color:white;}
         .admin-link{position:fixed;bottom:20px;right:20px;font-size:0.7rem;color:#4a5568;background:rgba(0,0,0,0.5);padding:6px 12px;border-radius:20px;text-decoration:none;z-index:100;}
         .admin-link:hover{color:#00d4ff;}
         .chat-container{background:rgba(10,20,35,0.6);border-radius:24px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05);overflow:hidden;margin-bottom:20px;}
@@ -52,7 +54,10 @@
             <p>Joshua's Artificial Intelligence — Your Voice Companion</p>
             <div class="badge">🔊 Click 🔊 to hear JAI speak</div>
             <div class="badge">🧮 Calculator | 📅 Calendar | 💬 Talk</div>
-            <button class="support-btn" onclick="window.open('https://paystack.shop/pay/l7hi0jm2zy')">❤️ Support JAI</button>
+            <div style="margin-top: 12px;">
+                <button class="support-btn" onclick="window.open('https://paystack.com/pay/jai-support', '_blank')">❤️ Support JAI</button>
+                <button id="autoSpeakToggle" class="toggle-btn">🔇 Auto-Speak OFF</button>
+            </div>
         </div>
 
         <div class="chat-container">
@@ -79,19 +84,41 @@
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const lessonBanner = document.getElementById('lessonBanner');
+        const autoSpeakToggle = document.getElementById('autoSpeakToggle');
         
         let userId = localStorage.getItem('jai_user_id');
         if (!userId) { userId = 'user_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('jai_user_id', userId); }
         
         let currentLesson = "No lesson uploaded";
+        let autoSpeak = localStorage.getItem('jai_auto_speak') === 'true';
+        
+        function updateAutoSpeakButton() {
+            autoSpeakToggle.textContent = autoSpeak ? '🔊 Auto-Speak ON' : '🔇 Auto-Speak OFF';
+            autoSpeakToggle.classList.toggle('active', autoSpeak);
+        }
+        
+        autoSpeakToggle.onclick = () => {
+            autoSpeak = !autoSpeak;
+            localStorage.setItem('jai_auto_speak', autoSpeak);
+            updateAutoSpeakButton();
+        };
         
         function speakText(text) {
             if (!text) return;
+            if (!window.speechSynthesis) return;
+            
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
             utterance.rate = 0.85;
             utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            
+            // Try to get a Nigerian voice if available
+            const voices = window.speechSynthesis.getVoices();
+            const nigerianVoice = voices.find(v => v.lang.includes('en-NG') || v.name.includes('Nigeria'));
+            if (nigerianVoice) utterance.voice = nigerianVoice;
+            
             window.speechSynthesis.speak(utterance);
         }
         
@@ -106,6 +133,7 @@
             bubble.innerHTML = message.replace(/\n/g, '<br>');
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(bubble);
+            
             if (!isUser) {
                 const controls = document.createElement('div');
                 controls.className = 'message-controls';
@@ -115,7 +143,13 @@
                 speakBtn.onclick = () => speakText(message);
                 controls.appendChild(speakBtn);
                 messageDiv.appendChild(controls);
+                
+                // Auto-speak if enabled
+                if (autoSpeak) {
+                    setTimeout(() => speakText(message), 100);
+                }
             }
+            
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
@@ -141,7 +175,7 @@
         }
         
         function setWelcomeMessage() {
-            addMessage("🗣️ I'm JAI — I can calculate, check dates, or just talk. What's on your mind?");
+            addMessage("🗣️ I'm JAI — I can calculate, check dates, or just talk. Click 🔊 to hear me speak. What's on your mind?");
         }
         
         async function sendMessage() {
@@ -162,6 +196,10 @@
         sendBtn.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
         
+        // Load voices
+        window.speechSynthesis.onvoiceschanged = () => { console.log('Voices ready'); };
+        
+        updateAutoSpeakButton();
         loadCurrentLesson();
         setWelcomeMessage();
         messageInput.focus();
