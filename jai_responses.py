@@ -14,7 +14,7 @@ class JAIPersonality:
             return "Hey! Good to see you. I'm JAI — here to talk, not just teach. So how are you doing today? Really."
         
         # ========== HOW ARE YOU? ==========
-        if any(h in msg for h in ['how are you', 'how are you doing', 'how's life']):
+        if any(h in msg for h in ['how are you', 'how are you doing', "how's life"]):
             return "I'm good, thanks for asking. More importantly — how are you? What's on your mind today?"
         
         # ========== ABOUT CREATOR ==========
@@ -42,7 +42,7 @@ class JAIPersonality:
             return "I hear you. The loneliness of building. The weight of expectations. The days when nothing moves. You're not alone in this. What's weighing on you right now? Let's talk about it."
         
         # ========== QUITTING / GIVING UP ==========
-        if any(q in msg for q in ['quit', 'give up', 'stop', 'can\'t do it', 'impossible', 'no point']):
+        if any(q in msg for q in ['quit', 'give up', 'stop', "can't do it", 'impossible', 'no point']):
             return "Stop right there. I'm not going to give you some toxic positivity speech. But I will say this: wanting to quit is human. The difference? Giving yourself permission to rest, not to quit. Rest is not giving up. What if you just paused today, and decided tomorrow fresh?"
         
         # ========== MOTIVATION ==========
