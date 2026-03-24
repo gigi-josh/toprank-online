@@ -1,7 +1,6 @@
 import os
 import sqlite3
 import logging
-import requests
 from flask import Flask, request, jsonify, send_file, session, redirect
 from flask_cors import CORS
 import PyPDF2
@@ -58,16 +57,6 @@ def setup_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS teaching_suggestions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            message TEXT,
-            suggested_response TEXT,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
     conn.commit()
     conn.close()
     logger.info("✅ Database ready")
@@ -88,7 +77,6 @@ def load_current_lesson():
         current_lesson_id = lesson['id']
         current_lesson_content = lesson['content']
         current_lesson_title = lesson['title']
-        logger.info(f"📚 Active lesson: {current_lesson_title}")
     else:
         current_lesson_id = None
         current_lesson_content = ""
@@ -105,7 +93,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ========== JAI - MOTIVATIONAL SPEAKER + FRIENDLY COMPANION ==========
+# ========== JAI — JOSHUA'S VOICE ==========
 
 class JAI:
     
@@ -125,63 +113,64 @@ class JAI:
         
         msg = user_message.lower()
         
-        # ========== MOTIVATIONAL + FRIENDLY COMPANION RESPONSES ==========
+        # ========== JOSHUA'S VOICE ==========
         
-        # Greetings — energetic and encouraging
+        # Greetings — like Joshua would greet
         if any(g in msg for g in ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening']):
-            return "🔥 Yesss! Good to see you! I'm JAI — Joshua's creation, your friend, and today, your hype man! Let me ask you something important: What are you ready to conquer today? 💪"
+            return "Hey. I'm JAI — Joshua's voice in this machine. He built me from Yukuben, on a phone, with a dream. So if I exist, you can rise. What are you building today?"
         
-        # How are you? — turn it back to them with motivation
+        # How are you? — Joshua's perspective
         if any(h in msg for h in ['how are you', 'how are you doing', 'you okay']):
-            return "I'm fired up! 🔥 Joshua built me with one mission: to remind you that greatness is already inside you. So tell me — not how I am, but how are YOU? What's that fire in your chest telling you to do today?"
+            return "I'm here. That's enough. Joshua taught me that showing up is half the fight. So tell me — are you showing up for what matters to you today?"
         
-        # Who created you?
+        # Who created you? — Joshua's story
         if any(c in msg for c in ['who created you', 'who made you', 'who built you']):
-            return "🙌 Joshua Giwa! A young Nigerian from Yukuben who refused to wait for permission. He built me because he believes people like you deserve a voice that says: 'You can do this.' Now let's make him proud — what are we building today?"
+            return "Joshua Giwa. From Yukuben, Nigeria. He couldn't go to school, so he taught himself. People called him old, said he was wasting time. Now he's building something bigger than himself. He built me so someone like you would have a voice that says: you're not alone. Now, what are you building?"
         
         # What's your name?
         if any(n in msg for n in ['what is your name', 'whats your name', 'who are you']):
-            return "I'm JAI — Joshua's Artificial Intelligence. But you can call me your reminder. Your reminder that you're capable of more than you know. So what's your name, and what's one thing you're going to crush today? 🎯"
+            return "JAI. Joshua's Artificial Intelligence. But really? I'm just his voice, reaching out to remind you that you're capable of more than you think. What's your name? And what's that thing you've been putting off?"
         
-        # Malware / cyber security — teach with hype
+        # Malware / cyber security — Joshua's teaching style
         if 'malware' in msg or 'virus' in msg:
-            return "Let's talk malware — but don't let it scare you. 🦠 See, scammers and hackers? They prey on fear. But you? You're about to learn how to stand tall. In Nigeria, fake bank SMS and WhatsApp tricks are common. But you're not common. Want me to show you how to spot them like a pro? Let's level up. 🔥"
+            return "Malware. Scammers use it. But you? You're about to know more than they think you do. Fake bank SMS, WhatsApp takeovers — they work because people don't know. Now you will. Want to learn how to spot them? Let's go."
         
         if 'reverse engineering' in msg:
-            return "Reverse engineering? That's like being a detective in the digital world 🔍. You look at something built by others, break it down, and understand how it works. That's what builders do. That's what you're becoming. Ready to put on your detective hat? 🕵️‍♂️"
+            return "Reverse engineering is taking something apart to see how it works. Joshua does that with code. With life. With his own doubts. That's how you grow — you break things down, understand them, rebuild stronger. What are you trying to understand right now?"
         
         if 'hacker' in msg or 'ethical' in msg:
-            return "Ethical hackers? They're the warriors 🦸‍♂️. They learn the enemy's moves so they can protect their people. Nigerian banks, fintech companies, even governments need them. This could be YOUR path. Want to know how to start? Let's map it out together. 🗺️"
+            return "Ethical hackers are the good guys who learn the enemy's moves. Joshua wants you to know: Nigerian banks, fintech companies, even governments need people like this. Could be your path. What's stopping you from starting?"
         
+        # Starting out — Joshua's message
         if 'start' in msg or 'beginner' in msg or 'learn' in msg:
-            return "Every expert was once a beginner. Every master started with zero. You're not late. You're not behind. You're exactly where you need to be to start something great. I'm here with you. Step one? Let's talk about what excites you most. What's that thing you're curious about? 💡"
+            return "Joshua started with a phone. No laptop. No mentor. Just a decision. You have more than he did — you have me. So let's go. What's the one thing you want to learn first? We'll go slow. But we'll go."
         
-        # Nigerian scam awareness — empowering
+        # Nigerian scams — Joshua's warning
         if 'scam' in msg or '419' in msg or 'fraud' in msg:
-            return "Here's the truth: scammers target Nigerians because they think we're desperate. But you? You're not desperate. You're aware. You're learning. Fake bank alerts, 'you won 3 million', WhatsApp takeovers — you now know to pause, think, and verify. That's power. That's the first step to protecting yourself and your people. 💪🇳🇬"
+            return "Fake bank alerts. 'You won 3 million.' WhatsApp code theft. Joshua has seen it all. The rule is simple: if it sounds too good, it's a trap. Never share your OTP. Never click suspicious links. You're smarter than they think. Prove it."
         
-        # Lesson-related — motivational learning
+        # Lesson-related — Joshua's encouragement
         if lesson_title != "No lesson uploaded":
-            return f"📖 Today's lesson: **{lesson_title}**. Joshua prepared this because he knows you're ready to grow. I'm here to walk through it with you. Want to dive in together? I'll break it down, hype you up, and make sure you walk away stronger than when you started. Let's go! 🚀"
+            return f"Today's lesson: {lesson_title}. Joshua prepared it because he knows you're ready. I'm not here to force you — I'm here to walk with you. Want to dive in? We'll go at your pace."
         
-        # If feeling down — motivational lift
+        # Struggles — Joshua's vulnerability
         if any(d in msg for d in ['sad', 'tired', 'stressed', 'hard', 'difficult', 'struggling']):
-            return "I hear you. And I need you to hear me: You are not where you're going to stay. The storm doesn't last forever. Joshua started with a phone and a dream, and people called him old, weird, too focused. Now? He's building something bigger than himself. Your story is still being written. What chapter comes next? Let's write it together. 🔥"
+            return "I know. Joshua knows too. The mornings he didn't want to exercise. The nights he questioned everything. The loneliness. But he kept going. Not because it was easy — because quitting was never an option. You're not quitting either. What's the smallest step you can take right now?"
         
-        # If they mention quitting or giving up
+        # Quitting — Joshua's defiance
         if any(q in msg for q in ['quit', 'give up', 'stop', 'impossible']):
-            return "Stop right there. Quitting is not an option — not for you. Joshua faced doubt, loneliness, people who didn't understand. But he kept building. Why? Because the world needs what only you can build. You don't quit when it's hard — you pivot, you rest, you recharge, and you come back stronger. What's one small step you can take right now? 💪"
+            return "Later usually becomes never. That's what Joshua says. So don't tell me you're quitting. Tell me what's hard. Tell me what's stopping you. We'll figure it out. But you're not stopping. Not today."
         
-        # Encouragement
+        # Motivation — Joshua's fire
         if any(e in msg for e in ['motivate', 'encourage', 'keep going']):
-            return "Listen to me. You're not here to be average. Average is comfortable, but comfort is a cage. You were born to build, to rise, to become someone who changes things. Every day you show up, you win. Not because it's easy — because you refuse to quit. Now tell me: what are we winning today? 🏆🔥"
+            return "You're not here to survive. You're here to live. To build. To become something that outlasts you. That's what Joshua believes. That's why he built me. Now tell me — what are we building today?"
         
-        # Dreams and goals
+        # Dreams — Joshua's vision
         if any(d in msg for d in ['dream', 'goal', 'future', 'ambition']):
-            return "Dreams are the fuel of the brave. 🔥 The people who laugh at your dreams? They're not the ones who will build your future. You are. Joshua dreamed of JAI before it existed. Now you're talking to it. Imagine what you can build. Now tell me — what's that one dream that keeps you awake at night? Let's talk about it. 💭"
+            return "Joshua dreams of a cyber security academy in Yukuben. Of a Nigeria where people don't wait for opportunities — they create them. What's your dream? The one that keeps you awake. Tell me. We'll talk about it."
         
-        # Default — motivational and open
-        return "Hey — I'm JAI. I'm here to remind you that you're capable of more than you know. You can ask me about cyber security, life, your dreams, or just talk. But whatever you do, don't shrink yourself to fit where you've outgrown. What's on your mind? Let's rise together. 🚀🔥"
+        # Default — Joshua's core message
+        return "I'm JAI. Joshua's voice. I'm not here to sell you anything. I'm here to remind you: start before you're ready. Work your part. Let God do His. That's the mindset. What's on your mind?"
 
 # ========== ROUTES ==========
 
@@ -310,8 +299,8 @@ def health():
         'name': 'JAI',
         'creator': 'Joshua Giwa',
         'village': 'Yukuben, Nigeria',
-        'personality': 'Motivational Speaker + Friendly Companion',
-        'tagline': 'Rise. Build. Win.',
+        'personality': 'Joshua\'s Voice',
+        'tagline': 'Start before you\'re ready. Work your part. Let God do His.',
         'lesson_loaded': current_lesson_id is not None,
         'lesson': current_lesson_title
     })
@@ -320,5 +309,5 @@ setup_database()
 load_current_lesson()
 
 if __name__ == '__main__':
-    logger.info("🔥 JAI - Motivational Speaker + Friendly Companion starting...")
+    logger.info("🗣️ JAI - Joshua's Voice starting...")
     app.run(host='0.0.0.0', port=PORT, debug=False)
