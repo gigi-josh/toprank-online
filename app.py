@@ -15,21 +15,19 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your_secret_key_here')
 CORS(app)
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ========== CONFIGURATION ==========
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
 PORT = int(os.getenv('PORT', 5000))
-HF_API_KEY = os.getenv('HF_API_KEY')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')  # New!
 
-# Handle data directory safely
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, 'jai_academy.db')
 
-# ========== DATABASE FUNCTIONS ==========
+# ========== DATABASE ==========
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -39,7 +37,6 @@ def get_db():
 def setup_database():
     conn = get_db()
     cur = conn.cursor()
-    
     cur.execute('''
         CREATE TABLE IF NOT EXISTS lessons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +49,6 @@ def setup_database():
             uploaded_by TEXT
         )
     ''')
-    
     cur.execute('''
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,17 +59,6 @@ def setup_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS student_progress (
-            user_id TEXT PRIMARY KEY,
-            name TEXT,
-            lessons_completed TEXT,
-            current_lesson_id INTEGER,
-            last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
     cur.execute('''
         CREATE TABLE IF NOT EXISTS teaching_suggestions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,12 +69,11 @@ def setup_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
     conn.commit()
     conn.close()
-    logger.info(f"✅ Database ready")
+    logger.info("✅ Database ready")
 
-# ========== CURRENT LESSON TRACKING ==========
+# ========== CURRENT LESSON ==========
 
 current_lesson_id = None
 current_lesson_content = ""
@@ -97,16 +81,10 @@ current_lesson_title = "No lesson uploaded"
 
 def load_current_lesson():
     global current_lesson_id, current_lesson_content, current_lesson_title
-    
     conn = get_db()
     cur = conn.cursor()
-    cur.execute('''
-        SELECT id, title, content FROM lessons 
-        WHERE is_active = 1 
-        ORDER BY uploaded_at DESC LIMIT 1
-    ''')
+    cur.execute('SELECT id, title, content FROM lessons WHERE is_active = 1 ORDER BY uploaded_at DESC LIMIT 1')
     lesson = cur.fetchone()
-    
     if lesson:
         current_lesson_id = lesson['id']
         current_lesson_content = lesson['content']
@@ -128,93 +106,84 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ========== JAI - WITH FALLBACK ==========
+# ========== JAI WITH GEMINI ==========
 
 class JAI:
     
     @staticmethod
     def generate_response(user_message, lesson_content="", lesson_title="", user_id="anonymous"):
         
-        # Save user question
+        # Save question
         try:
             conn = get_db()
             cur = conn.cursor()
-            cur.execute('''
-                INSERT INTO chat_history (user_id, message, lesson_id, created_at)
-                VALUES (?, ?, ?, ?)
-            ''', (user_id, user_message[:500], current_lesson_id, datetime.now()))
+            cur.execute('INSERT INTO chat_history (user_id, message, lesson_id, created_at) VALUES (?, ?, ?, ?)',
+                       (user_id, user_message[:500], current_lesson_id, datetime.now()))
             conn.commit()
             conn.close()
         except Exception as e:
-            logger.error(f"Database error: {e}")
+            logger.error(f"DB error: {e}")
         
-        # Build prompt
-        lesson_context = ""
+        # Build prompt with context
+        context = ""
         if lesson_content and lesson_title != "No lesson uploaded":
-            lesson_context = f"Current lesson: {lesson_title}\n\n"
+            context = f"Current lesson: {lesson_title}\n\n"
         
-        prompt = f"""{lesson_context}You are JAI, a friendly cyber security teacher created by Joshua Giwa from Yukuben, Nigeria. Teach clearly. Use Nigerian examples.
+        prompt = f"""{context}You are JAI (Joshua's Artificial Intelligence), a friendly cyber security teacher created by Joshua Giwa from Yukuben, Nigeria.
+
+Teach clearly. Use Nigerian examples (banking scams, POS fraud). Be encouraging.
 
 Student: {user_message}
 
 JAI:"""
         
-        try:
-            headers = {
-                "Authorization": f"Bearer {HF_API_KEY}",
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "inputs": prompt,
-                "parameters": {
-                    "max_new_tokens": 150,
-                    "temperature": 0.7,
-                    "return_full_text": False
-                }
-            }
-            
-            # CORRECT ENDPOINT
-            response = requests.post(
-                "https://api-inference.huggingface.co/models/google/flan-t5-small",
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
-            
-            logger.info(f"Response status: {response.status_code}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    response_text = result[0].get('generated_text', '').strip()
-                    if response_text:
-                        return response_text
-            
-            # Fallback responses
-            return JAI.fallback_response(user_message, lesson_title)
-            
-        except Exception as e:
-            logger.error(f"Error: {e}")
-            return JAI.fallback_response(user_message, lesson_title)
-    
-    @staticmethod
-    def fallback_response(message, lesson_title):
-        msg = message.lower()
+        # Try Gemini API
+        if GEMINI_API_KEY:
+            try:
+                response = requests.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}",
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "contents": [{
+                            "parts": [{"text": prompt}]
+                        }],
+                        "generationConfig": {
+                            "temperature": 0.7,
+                            "maxOutputTokens": 200
+                        }
+                    },
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if 'candidates' in result and len(result['candidates']) > 0:
+                        text = result['candidates'][0]['content']['parts'][0]['text']
+                        if text:
+                            return text
+                            
+            except Exception as e:
+                logger.error(f"Gemini error: {e}")
+        
+        # Fallback responses (always works)
+        msg = user_message.lower()
         
         if any(g in msg for g in ['hi', 'hello', 'hey']):
-            return "👋 Hello! I'm JAI, your cyber security teacher created by Joshua Giwa from Yukuben, Nigeria. What would you like to learn today?"
+            return "👋 Hello! I'm JAI, your cyber security teacher, created by Joshua Giwa from Yukuben, Nigeria. What would you like to learn today?"
         
         if 'malware' in msg:
-            return "🦠 Malware is malicious software designed to harm devices. Common types: viruses, worms, ransomware. Want to learn how to protect yourself?"
+            return "🦠 Malware is malicious software designed to harm devices. Common types: viruses, worms, ransomware. In Nigeria, banking malware often spreads through fake SMS messages. Want to learn how to protect yourself?"
         
-        if 'who created' in msg:
-            return "I was created by Joshua Giwa from Yukuben, Nigeria. He built me to help Nigerians learn cyber security!"
+        if 'who created' in msg or 'who made you' in msg:
+            return "I was created by Joshua Giwa from Yukuben, Nigeria. He built me to help Nigerians learn cyber security and protect themselves online!"
+        
+        if 'reverse engineering' in msg:
+            return "🔍 Reverse engineering is analyzing software to understand how it works. It's used in malware analysis and finding security flaws. Fascinating field!"
         
         if lesson_title != "No lesson uploaded":
-            return f"📚 Today's lesson is: {lesson_title}. Ask me anything about it!"
+            return f"📚 Today's lesson is: **{lesson_title}**. Ask me anything about it!"
         
-        return "🎓 I'm JAI, your AI teacher! Ask me about malware, reverse engineering, or how to start in cyber security."
+        return "🎓 I'm JAI, your AI teacher! Ask me about malware, reverse engineering, or how to start in cyber security. What would you like to learn?"
 
 # ========== ROUTES ==========
 
@@ -342,13 +311,15 @@ def health():
         'status': 'healthy',
         'name': 'JAI',
         'creator': 'Joshua Giwa',
+        'village': 'Yukuben, Nigeria',
         'lesson_loaded': current_lesson_id is not None,
         'lesson': current_lesson_title,
-        'hf_api': bool(HF_API_KEY)
+        'gemini_api': bool(GEMINI_API_KEY)
     })
 
 setup_database()
 load_current_lesson()
 
 if __name__ == '__main__':
+    logger.info("🤖 JAI - Joshua's Artificial Intelligence starting...")
     app.run(host='0.0.0.0', port=PORT, debug=False)
