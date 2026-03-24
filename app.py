@@ -203,7 +203,7 @@ JAI:"""
             
             # Use the model from environment variable
             response = requests.post(
-                f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}",
+                f"https://api-inference.huggingface.co/models/google/flan-T5-small",
                 headers=headers,
                 json=payload,
                 timeout=60
