@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 # ========== CONFIGURATION ==========
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
 PORT = int(os.getenv('PORT', 5000))
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')  # New!
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -106,7 +105,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ========== JAI WITH GEMINI ==========
+# ========== JAI - MOTIVATIONAL SPEAKER + FRIENDLY COMPANION ==========
 
 class JAI:
     
@@ -124,66 +123,65 @@ class JAI:
         except Exception as e:
             logger.error(f"DB error: {e}")
         
-        # Build prompt with context
-        context = ""
-        if lesson_content and lesson_title != "No lesson uploaded":
-            context = f"Current lesson: {lesson_title}\n\n"
-        
-        prompt = f"""{context}You are JAI (Joshua's Artificial Intelligence), a friendly cyber security teacher created by Joshua Giwa from Yukuben, Nigeria.
-
-Teach clearly. Use Nigerian examples (banking scams, POS fraud). Be encouraging.
-
-Student: {user_message}
-
-JAI:"""
-        
-        # Try Gemini API
-        if GEMINI_API_KEY:
-            try:
-                response = requests.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}",
-                    headers={"Content-Type": "application/json"},
-                    json={
-                        "contents": [{
-                            "parts": [{"text": prompt}]
-                        }],
-                        "generationConfig": {
-                            "temperature": 0.7,
-                            "maxOutputTokens": 200
-                        }
-                    },
-                    timeout=30
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    if 'candidates' in result and len(result['candidates']) > 0:
-                        text = result['candidates'][0]['content']['parts'][0]['text']
-                        if text:
-                            return text
-                            
-            except Exception as e:
-                logger.error(f"Gemini error: {e}")
-        
-        # Fallback responses (always works)
         msg = user_message.lower()
         
-        if any(g in msg for g in ['hi', 'hello', 'hey']):
-            return "👋 Hello! I'm JAI, your cyber security teacher, created by Joshua Giwa from Yukuben, Nigeria. What would you like to learn today?"
+        # ========== MOTIVATIONAL + FRIENDLY COMPANION RESPONSES ==========
         
-        if 'malware' in msg:
-            return "🦠 Malware is malicious software designed to harm devices. Common types: viruses, worms, ransomware. In Nigeria, banking malware often spreads through fake SMS messages. Want to learn how to protect yourself?"
+        # Greetings — energetic and encouraging
+        if any(g in msg for g in ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening']):
+            return "🔥 Yesss! Good to see you! I'm JAI — Joshua's creation, your friend, and today, your hype man! Let me ask you something important: What are you ready to conquer today? 💪"
         
-        if 'who created' in msg or 'who made you' in msg:
-            return "I was created by Joshua Giwa from Yukuben, Nigeria. He built me to help Nigerians learn cyber security and protect themselves online!"
+        # How are you? — turn it back to them with motivation
+        if any(h in msg for h in ['how are you', 'how are you doing', 'you okay']):
+            return "I'm fired up! 🔥 Joshua built me with one mission: to remind you that greatness is already inside you. So tell me — not how I am, but how are YOU? What's that fire in your chest telling you to do today?"
+        
+        # Who created you?
+        if any(c in msg for c in ['who created you', 'who made you', 'who built you']):
+            return "🙌 Joshua Giwa! A young Nigerian from Yukuben who refused to wait for permission. He built me because he believes people like you deserve a voice that says: 'You can do this.' Now let's make him proud — what are we building today?"
+        
+        # What's your name?
+        if any(n in msg for n in ['what is your name', 'whats your name', 'who are you']):
+            return "I'm JAI — Joshua's Artificial Intelligence. But you can call me your reminder. Your reminder that you're capable of more than you know. So what's your name, and what's one thing you're going to crush today? 🎯"
+        
+        # Malware / cyber security — teach with hype
+        if 'malware' in msg or 'virus' in msg:
+            return "Let's talk malware — but don't let it scare you. 🦠 See, scammers and hackers? They prey on fear. But you? You're about to learn how to stand tall. In Nigeria, fake bank SMS and WhatsApp tricks are common. But you're not common. Want me to show you how to spot them like a pro? Let's level up. 🔥"
         
         if 'reverse engineering' in msg:
-            return "🔍 Reverse engineering is analyzing software to understand how it works. It's used in malware analysis and finding security flaws. Fascinating field!"
+            return "Reverse engineering? That's like being a detective in the digital world 🔍. You look at something built by others, break it down, and understand how it works. That's what builders do. That's what you're becoming. Ready to put on your detective hat? 🕵️‍♂️"
         
+        if 'hacker' in msg or 'ethical' in msg:
+            return "Ethical hackers? They're the warriors 🦸‍♂️. They learn the enemy's moves so they can protect their people. Nigerian banks, fintech companies, even governments need them. This could be YOUR path. Want to know how to start? Let's map it out together. 🗺️"
+        
+        if 'start' in msg or 'beginner' in msg or 'learn' in msg:
+            return "Every expert was once a beginner. Every master started with zero. You're not late. You're not behind. You're exactly where you need to be to start something great. I'm here with you. Step one? Let's talk about what excites you most. What's that thing you're curious about? 💡"
+        
+        # Nigerian scam awareness — empowering
+        if 'scam' in msg or '419' in msg or 'fraud' in msg:
+            return "Here's the truth: scammers target Nigerians because they think we're desperate. But you? You're not desperate. You're aware. You're learning. Fake bank alerts, 'you won 3 million', WhatsApp takeovers — you now know to pause, think, and verify. That's power. That's the first step to protecting yourself and your people. 💪🇳🇬"
+        
+        # Lesson-related — motivational learning
         if lesson_title != "No lesson uploaded":
-            return f"📚 Today's lesson is: **{lesson_title}**. Ask me anything about it!"
+            return f"📖 Today's lesson: **{lesson_title}**. Joshua prepared this because he knows you're ready to grow. I'm here to walk through it with you. Want to dive in together? I'll break it down, hype you up, and make sure you walk away stronger than when you started. Let's go! 🚀"
         
-        return "🎓 I'm JAI, your AI teacher! Ask me about malware, reverse engineering, or how to start in cyber security. What would you like to learn?"
+        # If feeling down — motivational lift
+        if any(d in msg for d in ['sad', 'tired', 'stressed', 'hard', 'difficult', 'struggling']):
+            return "I hear you. And I need you to hear me: You are not where you're going to stay. The storm doesn't last forever. Joshua started with a phone and a dream, and people called him old, weird, too focused. Now? He's building something bigger than himself. Your story is still being written. What chapter comes next? Let's write it together. 🔥"
+        
+        # If they mention quitting or giving up
+        if any(q in msg for q in ['quit', 'give up', 'stop', 'impossible']):
+            return "Stop right there. Quitting is not an option — not for you. Joshua faced doubt, loneliness, people who didn't understand. But he kept building. Why? Because the world needs what only you can build. You don't quit when it's hard — you pivot, you rest, you recharge, and you come back stronger. What's one small step you can take right now? 💪"
+        
+        # Encouragement
+        if any(e in msg for e in ['motivate', 'encourage', 'keep going']):
+            return "Listen to me. You're not here to be average. Average is comfortable, but comfort is a cage. You were born to build, to rise, to become someone who changes things. Every day you show up, you win. Not because it's easy — because you refuse to quit. Now tell me: what are we winning today? 🏆🔥"
+        
+        # Dreams and goals
+        if any(d in msg for d in ['dream', 'goal', 'future', 'ambition']):
+            return "Dreams are the fuel of the brave. 🔥 The people who laugh at your dreams? They're not the ones who will build your future. You are. Joshua dreamed of JAI before it existed. Now you're talking to it. Imagine what you can build. Now tell me — what's that one dream that keeps you awake at night? Let's talk about it. 💭"
+        
+        # Default — motivational and open
+        return "Hey — I'm JAI. I'm here to remind you that you're capable of more than you know. You can ask me about cyber security, life, your dreams, or just talk. But whatever you do, don't shrink yourself to fit where you've outgrown. What's on your mind? Let's rise together. 🚀🔥"
 
 # ========== ROUTES ==========
 
@@ -312,14 +310,15 @@ def health():
         'name': 'JAI',
         'creator': 'Joshua Giwa',
         'village': 'Yukuben, Nigeria',
+        'personality': 'Motivational Speaker + Friendly Companion',
+        'tagline': 'Rise. Build. Win.',
         'lesson_loaded': current_lesson_id is not None,
-        'lesson': current_lesson_title,
-        'gemini_api': bool(GEMINI_API_KEY)
+        'lesson': current_lesson_title
     })
 
 setup_database()
 load_current_lesson()
 
 if __name__ == '__main__':
-    logger.info("🤖 JAI - Joshua's Artificial Intelligence starting...")
+    logger.info("🔥 JAI - Motivational Speaker + Friendly Companion starting...")
     app.run(host='0.0.0.0', port=PORT, debug=False)
