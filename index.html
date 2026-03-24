@@ -5,301 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>JAI | Joshua's Artificial Intelligence</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #0a0f1e 0%, #0a1a2a 100%);
-            min-height: 100vh;
-            color: #e2e8f0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            padding: 30px 20px;
-            background: rgba(15, 25, 45, 0.7);
-            border-radius: 30px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 255, 255, 0.2);
-        }
-
-        .header h1 {
-            font-size: 2rem;
-            background: linear-gradient(135deg, #00d4ff, #00ffaa);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #94a3b8;
-            font-size: 0.9rem;
-        }
-
-        .badge {
-            display: inline-block;
-            background: rgba(0, 255, 255, 0.1);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: #00d4ff;
-            margin-top: 10px;
-        }
-
-        .voice-badge {
-            background: rgba(0, 255, 100, 0.2);
-            color: #00ffaa;
-        }
-
-        .admin-link {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            font-size: 0.7rem;
-            color: #4a5568;
-            text-decoration: none;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 6px 12px;
-            border-radius: 20px;
-            z-index: 100;
-        }
-
-        .admin-link:hover {
-            color: #00d4ff;
-        }
-
-        /* Chat Container */
-        .chat-container {
-            background: rgba(10, 20, 35, 0.6);
-            border-radius: 24px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .messages {
-            height: 450px;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .message {
-            display: flex;
-            gap: 12px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message.user .bubble {
-            background: linear-gradient(135deg, #00d4ff, #00aa88);
-            color: #0a0f1e;
-            border-radius: 20px 20px 8px 20px;
-        }
-
-        .message.ai .bubble {
-            background: rgba(30, 45, 65, 0.9);
-            border-radius: 20px 20px 20px 8px;
-            border: 1px solid rgba(0, 255, 255, 0.2);
-        }
-
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-
-        .message.ai .avatar {
-            background: linear-gradient(135deg, #00d4ff, #00ffaa);
-        }
-
-        .message.user .avatar {
-            background: #2d3748;
-            order: 2;
-        }
-
-        .bubble {
-            max-width: 75%;
-            padding: 12px 16px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            word-wrap: break-word;
-        }
-
-        /* Message controls */
-        .message-controls {
-            display: flex;
-            gap: 8px;
-            margin-top: 6px;
-            margin-left: 48px;
-        }
-
-        .speak-btn {
-            background: rgba(0, 212, 255, 0.2);
-            border: none;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 0.7rem;
-            color: #00d4ff;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .speak-btn:hover {
-            background: rgba(0, 212, 255, 0.4);
-        }
-
-        .type-badge {
-            font-size: 0.65rem;
-            opacity: 0.5;
-            margin-top: 4px;
-            margin-left: 48px;
-        }
-
-        /* Input Area */
-        .input-area {
-            padding: 16px;
-            background: rgba(15, 25, 45, 0.9);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            gap: 12px;
-        }
-
-        .input-area input {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(0, 255, 255, 0.3);
-            border-radius: 40px;
-            padding: 14px 20px;
-            color: white;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.2s;
-        }
-
-        .input-area input:focus {
-            border-color: #00d4ff;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
-        }
-
-        .input-area input::placeholder {
-            color: #4a5568;
-        }
-
-        .input-area button {
-            background: linear-gradient(135deg, #00d4ff, #00aa88);
-            border: none;
-            border-radius: 40px;
-            padding: 0 28px;
-            font-weight: bold;
-            color: #0a0f1e;
-            cursor: pointer;
-            transition: transform 0.2s;
-            font-size: 1rem;
-        }
-
-        .input-area button:hover {
-            transform: scale(1.02);
-        }
-
-        .input-area button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Lesson Banner */
-        .lesson-banner {
-            background: rgba(0, 212, 255, 0.1);
-            border-radius: 12px;
-            padding: 10px 16px;
-            margin-bottom: 16px;
-            font-size: 0.8rem;
-            text-align: center;
-            border: 1px solid rgba(0, 212, 255, 0.2);
-        }
-
-        .lesson-banner strong {
-            color: #00d4ff;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            font-size: 0.7rem;
-            color: #4a5568;
-            margin-top: 20px;
-            padding: 16px;
-        }
-
-        /* Scrollbar */
-        .messages::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .messages::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 3px;
-        }
-
-        .messages::-webkit-scrollbar-thumb {
-            background: #00d4ff;
-            border-radius: 3px;
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 12px;
-            }
-            
-            .bubble {
-                max-width: 85%;
-                font-size: 0.85rem;
-            }
-            
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            
-            .messages {
-                height: 400px;
-            }
-            
-            .avatar {
-                width: 32px;
-                height: 32px;
-                font-size: 1rem;
-            }
-        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:linear-gradient(135deg,#0a0f1e,#0a1a2a);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#e2e8f0;padding:20px;}
+        .container{max-width:800px;margin:0 auto;}
+        .header{text-align:center;padding:25px 20px;background:rgba(15,25,45,0.7);border-radius:30px;margin-bottom:20px;backdrop-filter:blur(10px);border:1px solid rgba(0,255,255,0.2);}
+        .header h1{font-size:1.8rem;background:linear-gradient(135deg,#00d4ff,#00ffaa);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .header p{color:#94a3b8;font-size:0.85rem;}
+        .badge{display:inline-block;background:rgba(0,255,255,0.1);padding:4px 12px;border-radius:20px;font-size:0.7rem;color:#00d4ff;margin-top:8px;}
+        .support-btn{background:linear-gradient(135deg,#ffaa44,#ff8844);border:none;padding:8px 20px;border-radius:40px;font-weight:bold;cursor:pointer;margin-top:10px;font-size:0.8rem;color:#1a1a2e;transition:transform 0.2s;}
+        .support-btn:hover{transform:scale(1.02);}
+        .admin-link{position:fixed;bottom:20px;right:20px;font-size:0.7rem;color:#4a5568;background:rgba(0,0,0,0.5);padding:6px 12px;border-radius:20px;text-decoration:none;z-index:100;}
+        .admin-link:hover{color:#00d4ff;}
+        .chat-container{background:rgba(10,20,35,0.6);border-radius:24px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05);overflow:hidden;margin-bottom:20px;}
+        .messages{height:450px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+        .message{display:flex;gap:12px;animation:fadeIn 0.3s ease;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+        .message.user{justify-content:flex-end;}
+        .message.user .bubble{background:linear-gradient(135deg,#00d4ff,#00aa88);color:#0a0f1e;border-radius:20px 20px 8px 20px;}
+        .message.ai .bubble{background:rgba(30,45,65,0.9);border-radius:20px 20px 20px 8px;border:1px solid rgba(0,255,255,0.2);}
+        .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+        .message.ai .avatar{background:linear-gradient(135deg,#00d4ff,#00ffaa);}
+        .message.user .avatar{background:#2d3748;order:2;}
+        .bubble{max-width:75%;padding:12px 16px;font-size:0.9rem;line-height:1.5;word-wrap:break-word;}
+        .message-controls{display:flex;gap:8px;margin-top:6px;margin-left:48px;}
+        .speak-btn{background:rgba(0,212,255,0.2);border:none;border-radius:20px;padding:4px 12px;font-size:0.7rem;color:#00d4ff;cursor:pointer;}
+        .speak-btn:hover{background:rgba(0,212,255,0.4);}
+        .input-area{padding:16px;background:rgba(15,25,45,0.9);border-top:1px solid rgba(255,255,255,0.05);display:flex;gap:12px;}
+        .input-area input{flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(0,255,255,0.3);border-radius:40px;padding:14px 20px;color:white;font-size:1rem;outline:none;}
+        .input-area input:focus{border-color:#00d4ff;box-shadow:0 0 10px rgba(0,212,255,0.2);}
+        .input-area input::placeholder{color:#4a5568;}
+        .input-area button{background:linear-gradient(135deg,#00d4ff,#00aa88);border:none;border-radius:40px;padding:0 28px;font-weight:bold;color:#0a0f1e;cursor:pointer;}
+        .input-area button:disabled{opacity:0.5;}
+        .lesson-banner{background:rgba(0,212,255,0.1);border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:0.8rem;text-align:center;border:1px solid rgba(0,212,255,0.2);}
+        .lesson-banner strong{color:#00d4ff;}
+        .footer{text-align:center;font-size:0.7rem;color:#4a5568;margin-top:20px;padding:16px;}
+        .messages::-webkit-scrollbar{width:6px;}
+        .messages::-webkit-scrollbar-track{background:rgba(0,0,0,0.2);border-radius:3px;}
+        .messages::-webkit-scrollbar-thumb{background:#00d4ff;border-radius:3px;}
+        @media(max-width:600px){body{padding:12px;}.bubble{max-width:85%;font-size:0.85rem;}.messages{height:400px;}.avatar{width:32px;height:32px;}}
     </style>
 </head>
 <body>
@@ -307,232 +50,121 @@
         <div class="header">
             <h1>🗣️ JAI</h1>
             <p>Joshua's Artificial Intelligence — Your Voice Companion</p>
-            <div class="badge voice-badge">🔊 Click 🔊 to hear JAI speak</div>
-            <div class="badge">🤖 Created by Joshua Giwa | 🇳🇬 Yukuben, Nigeria</div>
+            <div class="badge">🔊 Click 🔊 to hear JAI speak</div>
+            <div class="badge">🧮 Calculator | 📅 Calendar | 💬 Talk</div>
+            <button class="support-btn" onclick="window.open('https://paystack.shop/pay/l7hi0jm2zy')">❤️ Support JAI</button>
         </div>
 
         <div class="chat-container">
             <div class="messages" id="messages">
                 <div class="message ai">
                     <div class="avatar">🗣️</div>
-                    <div class="bubble" id="welcomeMessage">
-                        Loading JAI...
-                    </div>
+                    <div class="bubble">Loading JAI...</div>
                 </div>
             </div>
-
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Type your message... JAI will speak back! 🔊" autocomplete="off">
+                <input type="text" id="messageInput" placeholder="Ask JAI anything... math, dates, life..." autocomplete="off">
                 <button id="sendBtn">Send</button>
             </div>
         </div>
 
-        <div class="lesson-banner" id="lessonBanner">
-            📚 Loading current lesson...
-        </div>
-
-        <div class="footer">
-            🔊 Click the 🔊 button next to any JAI message to hear it spoken aloud | JAI — Joshua's Voice
-        </div>
+        <div class="lesson-banner" id="lessonBanner">📚 Loading...</div>
+        <div class="footer">🔊 Click 🔊 to hear JAI speak | JAI — Joshua's Voice</div>
     </div>
-
     <a href="/admin/login-page" class="admin-link">🔐 Admin</a>
 
     <script>
-        // Configuration
         const API_URL = window.location.origin;
-        
-        // DOM Elements
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const lessonBanner = document.getElementById('lessonBanner');
         
-        // Generate a unique user ID
         let userId = localStorage.getItem('jai_user_id');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('jai_user_id', userId);
-        }
+        if (!userId) { userId = 'user_' + Math.random().toString(36).substr(2, 9); localStorage.setItem('jai_user_id', userId); }
         
         let currentLesson = "No lesson uploaded";
         
-        // ========== TEXT TO SPEECH ==========
         function speakText(text) {
             if (!text) return;
-            
-            // Stop any ongoing speech
             window.speechSynthesis.cancel();
-            
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
-            utterance.rate = 0.85;  // Natural speaking pace
-            utterance.pitch = 1.0;   // Normal pitch
-            utterance.volume = 1.0;  // Full volume
-            
-            // Try to use a Nigerian-accented voice if available
-            const voices = window.speechSynthesis.getVoices();
-            const nigerianVoice = voices.find(voice => voice.lang.includes('en-NG') || voice.name.includes('Nigeria'));
-            if (nigerianVoice) {
-                utterance.voice = nigerianVoice;
-            }
-            
+            utterance.rate = 0.85;
+            utterance.pitch = 1.0;
             window.speechSynthesis.speak(utterance);
         }
         
-        // Helper: Add message to chat
-        function addMessage(message, isUser = false, type = 'jai') {
+        function addMessage(message, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-            
             const avatar = document.createElement('div');
             avatar.className = 'avatar';
             avatar.textContent = isUser ? '👤' : '🗣️';
-            
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
             bubble.innerHTML = message.replace(/\n/g, '<br>');
-            
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(bubble);
-            
-            // Add speak button for AI messages
             if (!isUser) {
                 const controls = document.createElement('div');
                 controls.className = 'message-controls';
-                
                 const speakBtn = document.createElement('button');
                 speakBtn.className = 'speak-btn';
                 speakBtn.innerHTML = '🔊 Listen';
                 speakBtn.onclick = () => speakText(message);
                 controls.appendChild(speakBtn);
-                
                 messageDiv.appendChild(controls);
             }
-            
             messagesContainer.appendChild(messageDiv);
-            
-            // Scroll to bottom
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
-        // Helper: Show typing indicator
         function showTyping() {
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message ai';
             typingDiv.id = 'typingIndicator';
-            typingDiv.innerHTML = `
-                <div class="avatar">🗣️</div>
-                <div class="bubble" style="padding: 12px 20px;">
-                    <span style="opacity:0.7;">JAI is speaking...</span><span style="animation: blink 1s infinite;">.</span>
-                </div>
-            `;
+            typingDiv.innerHTML = `<div class="avatar">🗣️</div><div class="bubble">JAI is thinking...</div>`;
             messagesContainer.appendChild(typingDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            if (!document.querySelector('#typingStyle')) {
-                const style = document.createElement('style');
-                style.id = 'typingStyle';
-                style.textContent = `
-                    @keyframes blink {
-                        0%, 100% { opacity: 0.3; }
-                        50% { opacity: 1; }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
         }
         
-        function hideTyping() {
-            const typing = document.getElementById('typingIndicator');
-            if (typing) typing.remove();
-        }
+        function hideTyping() { const typing = document.getElementById('typingIndicator'); if (typing) typing.remove(); }
         
-        // Load current lesson
         async function loadCurrentLesson() {
             try {
                 const response = await fetch('/admin/lesson');
                 const data = await response.json();
                 currentLesson = data.lesson;
-                
-                if (data.loaded) {
-                    lessonBanner.innerHTML = `📖 <strong>Today's Lesson:</strong> ${data.lesson}`;
-                } else {
-                    lessonBanner.innerHTML = `📚 JAI Academy — Ready to learn. Ask me anything about cyber security, life, or your dreams.`;
-                }
-            } catch (error) {
-                console.error('Error loading lesson:', error);
-                lessonBanner.innerHTML = `📚 JAI — Your voice companion. Ask me anything.`;
-            }
+                lessonBanner.innerHTML = data.loaded ? `📖 <strong>Today's Lesson:</strong> ${data.lesson}` : '📚 JAI — Ask me anything: math, dates, life...';
+            } catch(e) { lessonBanner.innerHTML = '📚 JAI — Ready. Ask me anything.'; }
         }
         
-        // Set welcome message
         function setWelcomeMessage() {
-            const welcomeText = `🗣️ I'm JAI — Joshua's voice. He built me from Yukuben, on a phone, with a dream. So if I exist, you can rise. I can speak too — just click the "Listen" button after my messages. What's on your mind today?`;
-            addMessage(welcomeText, false);
+            addMessage("🗣️ I'm JAI — I can calculate, check dates, or just talk. What's on your mind?");
         }
         
-        // Send message to JAI
         async function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
-            
             addMessage(message, true);
             messageInput.value = '';
             messageInput.focus();
-            
             showTyping();
-            
             try {
-                const response = await fetch(`${API_URL}/chat`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        userId: userId
-                    })
-                });
-                
+                const response = await fetch(`${API_URL}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, userId }) });
                 const data = await response.json();
-                
                 hideTyping();
-                
-                if (response.ok) {
-                    addMessage(data.response, false, data.type || 'jai');
-                    // Auto-speak JAI's response (optional)
-                    // speakText(data.response);
-                } else {
-                    addMessage(`❌ Error: ${data.error || 'Something went wrong'}`, false);
-                }
-            } catch (error) {
-                hideTyping();
-                addMessage(`❌ Connection error: ${error.message}. Please refresh and try again.`, false);
-                console.error('Error:', error);
-            }
+                addMessage(data.response, false);
+            } catch(e) { hideTyping(); addMessage(`❌ Error: ${e.message}`, false); }
         }
         
-        // Event Listeners
         sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
         
-        // Load voices when available
-        window.speechSynthesis.onvoiceschanged = () => {
-            const voices = window.speechSynthesis.getVoices();
-            console.log('Voices loaded:', voices.length);
-        };
-        
-        // Initialize
-        async function init() {
-            await loadCurrentLesson();
-            setWelcomeMessage();
-            messageInput.focus();
-        }
-        
-        init();
+        loadCurrentLesson();
+        setWelcomeMessage();
+        messageInput.focus();
     </script>
 </body>
 </html>
