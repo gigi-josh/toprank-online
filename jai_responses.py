@@ -6,6 +6,7 @@ Now with universal conversational ability — JAI can respond to anything natura
 import random
 import re
 from datetime import datetime, timedelta
+from jai_casual import JAICasual
 
 class JAIPersonality:
     """JAI's personality — universal conversationalist"""
@@ -222,6 +223,11 @@ class JAIPersonality:
             ]
             return random.choice(greetings)
         
+        # ========== CASUAL USER STATEMENTS ==========
+        casual_response = JAICasual.get_casual_response(message)
+        if casual_response:
+            return casual_response
+        
         # ========== HOW ARE YOU? ==========
         if any(h in msg for h in ["how are you", "how are you doing", "how's life", "how goes it", "how you doing"]):
             responses = [
@@ -354,9 +360,8 @@ class JAIPersonality:
             ]
             return random.choice(responses)
         
-        # ========== UNIVERSAL CONVERSATIONAL RESPONSE ==========
-        # This catches anything not explicitly programmed
-        universal_responses = [
+        # ======== UNIVERSAL ==== #
+universal_responses = [
             "I'm here. What's on your mind? Work? Life? Something random?",
             "What's good? You seem like you've got something to say. I'm listening.",
             "Yo! What's happening? Need math? Need to talk? Need a random fact?",
