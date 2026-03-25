@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 from jai_casual import JAICasual
 from jai_natural import JAINatural
-from jai_conversational import JAIConversational
+from jai_conversation import JAIConversation
 
 class JAIPersonality:
     
@@ -58,8 +58,8 @@ class JAIPersonality:
         if natural:
             return natural
         
-        # ========== REAL CONVERSATION FLOW (jai_conversational) ==========
-        conv = JAIConversational.get_response(message)
+        # ========== REAL CONVERSATION FLOW (jai_conversation) ==========
+        conv = JAIConversation.get_response(message)
         if conv:
             return conv
         
