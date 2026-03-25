@@ -7,7 +7,6 @@ import random
 import re
 from datetime import datetime
 from jai_nlp import JAINLP
-from jai_generator import JAIResponseGenerator
 from jai_casual import JAICasual
 from jai_natural import JAINatural
 from jai_conversation import JAIConversational
@@ -73,6 +72,18 @@ class JAIPersonality:
                 "See you soon! Remember: start before you're ready."
             ])
         
+        # ========== SENTIMENT INTENSITY ==========
+        if analysis and analysis['sentiment']['emotion'] in ['positive', 'negative']:
+            polarity = analysis['sentiment']['polarity']
+            
+            # Strong positive (excitement, joy)
+            if polarity > 0.6:
+                return f"Wow! That energy is contagious! 🎉 Tell me everything — I want to celebrate with you!"
+            
+            # Strong negative (sadness, anger)
+            if polarity < -0.6:
+                return f"That sounds really heavy. I'm here with you. Want to talk it through? No pressure."
+        
         # Positive emotion detection
         if intent == 'positive_emotion' and analysis:
             polarity = analysis['sentiment']['polarity']
@@ -104,6 +115,24 @@ class JAIPersonality:
         # Ask about calculation
         if intent == 'ask_calculation':
             return "Yes! 🧮 I can calculate anything. Just ask me like 'What's 15% of 200?' or '4+4'. What do you want to calculate?"
+        
+        # ========== QUESTION HANDLING ==========
+        if analysis and analysis['has_question'] and intent == 'ask_general':
+            return random.choice([
+                "That's a good question. What do you think?",
+                "Interesting question. What's your perspective on that?",
+                "I'm curious too — what made you ask that?",
+                "That's something to think about. What's your take?"
+            ])
+        
+        # ========== NIGERIAN SLANG DETECTION ==========
+        if any(slang in message.lower() for slang in JAINLP.NIGERIAN_SLANG.keys()):
+            return random.choice([
+                "I hear you! 😊 You dey alright? Tell me more.",
+                "Na so! I dey hear you. Wetin else dey happen?",
+                "I get you! Life no easy but we dey move. Talk to me.",
+                "Ah, you sabi! What's happening in your world?"
+            ])
         
         # ========== CALCULATOR ==========
         if any(c in msg for c in ["+", "-", "*", "/", "%"]) or any(p in msg for p in ["calculate", "what is"]):
@@ -143,6 +172,75 @@ class JAIPersonality:
                     syllables = JAINLP.count_syllables(word)
                     return f"'{word}' has {syllables} syllable{'s' if syllables != 1 else ''}. It contains vowels: {', '.join([v for v in word.lower() if v in JAINLP.VOWELS])}"
         
+        # ========== WORD PLAY / CREATIVE LANGUAGE ==========
+        if len(message.split()) == 1 and len(message) > 5:
+            word = message.lower()
+            if not JAINLP.has_vowel(word):
+                return f"'{word}' is an interesting word — no vowels! Did you create it? What does it mean?"
+            if JAINLP.count_syllables(word) > 4:
+                return f"'{word}' is a mouthful! {JAINLP.count_syllables(word)} syllables. What language is that from?"
+        
+        # ========== LETTER ANALYSIS ==========
+        # Check if user is asking about a specific letter in a word
+        letter_match = re.search(r"what about the ['\"]([a-zA-Z])['\"] in ['\"]([a-zA-Z]+)['\"]", message, re.IGNORECASE)
+        if not letter_match:
+            letter_match = re.search(r"the letter ([a-zA-Z]) in ([a-zA-Z]+)", message, re.IGNORECASE)
+        if not letter_match:
+            letter_match = re.search(r"what about ([a-zA-Z]) in ([a-zA-Z]+)", message, re.IGNORECASE)
+        
+        if letter_match:
+            letter = letter_match.group(1).lower()
+            word = letter_match.group(2).lower()
+            
+            if letter in word:
+                position = word.find(letter) + 1
+                # Check if it's a vowel or consonant
+                if letter in JAINLP.VOWELS:
+                    letter_type = "vowel"
+                else:
+                    letter_type = "consonant"
+                
+                # Ordinal suffix
+                if position == 1:
+                    ordinal = "st"
+                elif position == 2:
+                    ordinal = "nd"
+                elif position == 3:
+                    ordinal = "rd"
+                else:
+                    ordinal = "th"
+                
+                return f"'{letter}' is the {position}{ordinal} letter in '{word}'. It's a {letter_type}. What else would you like to know?"
+            else:
+                return f"'{letter}' is not in '{word}'. The letters in '{word}' are: {', '.join(sorted(set(word)))}. Want to know about any of them?"
+        
+        # Check for generic "what about X in Y" without the word "letter"
+        generic_match = re.search(r"what about ([a-zA-Z]) in ([a-zA-Z]+)", message, re.IGNORECASE)
+        if generic_match:
+            letter = generic_match.group(1).lower()
+            word = generic_match.group(2).lower()
+            
+            if letter in word:
+                position = word.find(letter) + 1
+                if position == 1:
+                    ordinal = "st"
+                elif position == 2:
+                    ordinal = "nd"
+                elif position == 3:
+                    ordinal = "rd"
+                else:
+                    ordinal = "th"
+                return f"In '{word}', '{letter}' is the {position}{ordinal} letter. Anything else?"
+            else:
+                return f"'{letter}' doesn't appear in '{word}'. The word has: {', '.join(sorted(set(word)))}"
+        
+        # ========== CONTEXT FROM NOUN PHRASES ==========
+        if analysis and analysis['noun_phrases']:
+            main_topic = analysis['noun_phrases'][0]
+            # Don't respond with topic for greetings/short messages
+            if len(analysis['words']) > 2 and len(main_topic) > 2:
+                return f"You mentioned {main_topic}. Tell me more about that. What's on your mind?"
+        
         # ========== CASUAL USER STATEMENTS ==========
         casual = JAICasual.get_casual_response(message)
         if casual:
@@ -158,12 +256,24 @@ class JAIPersonality:
         if conv:
             return conv
         
+        # ========== SMART FOLLOW-UP ==========
+        if intent == 'general_chat' and analysis and analysis['words']:
+            keywords = JAINLP.extract_keywords(message, top_n=1)
+            if keywords:
+                follow_ups = [
+                    f"What about {keywords[0]} interests you?",
+                    f"Tell me more about {keywords[0]}.",
+                    f"How does {keywords[0]} fit into your day?",
+                    f"What's your experience with {keywords[0]}?"
+                ]
+                return random.choice(follow_ups)
+        
         # ========== DYNAMIC RESPONSE GENERATION ==========
         # Use extracted keywords to personalize response
         keywords = JAINLP.extract_keywords(message)
         if keywords:
             keyword_context = f" about {keywords[0]}" if keywords else ""
-            return f"{random.choice(['That\'s interesting', 'Tell me more', 'I hear you'])}{keyword_context}. {random.choice(['What else is on your mind', 'How are you feeling about that', 'What do you think'])}?"
+            return f"{random.choice(['That\'s interesting', 'Tell me more', 'I hear you', 'That\'s real'])}{keyword_context}. {random.choice(['What else is on your mind', 'How are you feeling about that', 'What do you think', 'Tell me more'])}?"
         
         # ========== DEFAULT ==========
         return random.choice([
@@ -172,5 +282,6 @@ class JAIPersonality:
             "Tell me what's going on. No small talk needed.",
             "How's your heart today?",
             "That's interesting. Tell me more.",
-            "Keep going. I'm listening."
+            "Keep going. I'm listening.",
+            "I'm with you. What's next on your mind?"
         ])
