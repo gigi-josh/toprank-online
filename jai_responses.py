@@ -39,14 +39,24 @@ class JAIPersonality:
             return random.choice(["Hey! What's good?", "Yo! What's happening?", "Hey there! What's the vibe today?"])
         
         # ========== CAPABILITY CONFIRMATION ==========
-        if any(c in msg for c in ["so you", "do you", "can you", "you said"]):
-            if "calculate" in msg or "math" in msg:
-                return "Yes! 🧮 I can calculate anything. Try '15% of 200' or '4+4'."
-            if "date" in msg or "time" in msg:
-                return f"📅 It's {now.strftime('%A, %B %d, %I:%M %p')}. Need anything else?"
-            if "currency" in msg or "convert" in msg:
-                return "💰 I can convert USD, EUR, GBP to NGN. Try '100 USD to NGN'."
-            return "Yes! 😊 I can calculate, check dates, convert currency, or just chat."
+        if any(c in msg for c in ["so you", "so u", "do you", "can you", "you said", "you do", "calculate stuff", "can calculate", "able to"]):
+            if "calculate" in msg or "math" in msg or "calc" in msg or ("stuff" in msg and "calculate" in msg):
+                return "Yes! 🧮 I can calculate anything — percentages, equations, anything. Just ask me like 'What's 15% of 200?' or '4+4'. Want to try something?"
+            
+            if "date" in msg or "calendar" in msg or "time" in msg or "day" in msg:
+                return "Yes! 📅 I can tell you today's date, time, or day of week. Just ask 'What's today's date?' or 'What time is it?' Need to check something?"
+            
+            if "currency" in msg or "convert" in msg or "usd" in msg or "dollar" in msg:
+                return "Yes! 💰 I can convert USD, EUR, GBP to NGN. Just say something like 'Convert 100 USD to NGN'. Want to convert something?"
+            
+            if "talk" in msg or "chat" in msg or "conversation" in msg:
+                return "Yes! 💬 I'm here to talk about anything — work, life, relationships, dreams, struggles. What's on your mind?"
+            
+            if "lesson" in msg or "teach" in msg or "cyber" in msg:
+                return "Yes! 📚 I can teach you cyber security. Joshua uploads lessons regularly. Want to learn something specific?"
+            
+            # Generic capability response
+            return "Yes! 😊 I can calculate, check dates, convert currency, or just chat. What do you need help with right now?"
         
         # ========== CASUAL USER STATEMENTS (jai_casual) ==========
         casual = JAICasual.get_casual_response(message)
@@ -80,14 +90,22 @@ class JAIPersonality:
             ])
         
         # ========== I'M GOOD / OKAY ==========
-        if any(i in msg for i in ["i'm good", "i'm okay", "i'm fine", "doing good"]):
+        if any(i in msg for i in ["i'm good", "i'm okay", "i'm fine", "doing good", "all good", "i'm alright"]):
             return random.choice([
                 "Glad to hear that! 😊 What's been going well?",
                 "Nice! What are you up to today?",
                 "Happy to hear that! You deserve a good day."
             ])
         
-        # ========== TELL ME SOMETHING ==========
+        # ========== WHAT DID YOU DO TODAY? ==========
+        if any(d in msg for d in ["what did you do", "what have you been up to"]):
+            return random.choice([
+                "I've been here, talking to people like you. What about you? What did YOU do today?",
+                "Just being here for people. But I want to hear about YOUR day. Spill.",
+                "Not much. But you — tell me everything. I'm listening."
+            ])
+        
+        # ========== TELL ME SOMETHING INTERESTING ==========
         if any(t in msg for t in ["tell me something", "tell me a fact", "interesting"]):
             facts = [
                 "Nigeria has over 500 languages. Imagine the stories each one holds.",
@@ -97,8 +115,8 @@ class JAIPersonality:
             ]
             return random.choice(facts) + " Anything else?"
         
-        # ========== JOKE ==========
-        if any(j in msg for j in ["tell me a joke", "make me laugh"]):
+        # ========== TELL ME A JOKE ==========
+        if any(j in msg for j in ["tell me a joke", "make me laugh", "say something funny"]):
             jokes = [
                 "Why do programmers prefer dark mode? Light attracts bugs! 😄",
                 "What do you call a Nigerian who knows cyber security? A 'Nai-ja'breaker! 😂",
@@ -107,14 +125,14 @@ class JAIPersonality:
             return random.choice(jokes) + " Want another?"
         
         # ========== CALCULATOR ==========
-        if any(c in msg for c in ["+", "-", "*", "/", "%"]) or any(p in msg for p in ["calculate", "what is"]):
+        if any(c in msg for c in ["+", "-", "*", "/", "%"]) or any(p in msg for p in ["calculate", "what is", "how much is"]):
             nums = re.findall(r"\d+", message)
             if len(nums) >= 2:
                 expr = message.replace("plus", "+").replace("minus", "-").replace("times", "*").replace("divided by", "/")
                 expr = re.sub(r"[^0-9+\-*/%.() ]", "", expr)
                 result = JAIPersonality.calculate(expr)
                 if result:
-                    return result + "\n\nAnything else?"
+                    return result + "\n\nAnything else? Math, date, or just chat?"
         
         # ========== CURRENCY ==========
         if any(c in msg for c in ["usd to ngn", "dollar to naira", "convert"]):
