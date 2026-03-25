@@ -38,6 +38,8 @@ def get_db():
 def setup_database():
     conn = get_db()
     cur = conn.cursor()
+    
+    # Lessons table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS lessons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +52,8 @@ def setup_database():
             uploaded_by TEXT
         )
     ''')
+    
+    # Chat history
     cur.execute('''
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,6 +64,32 @@ def setup_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Bot taught responses (Q&A)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS bot (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT NOT NULL,
+            response TEXT NOT NULL,
+            approved INTEGER DEFAULT 1,
+            times_used INTEGER DEFAULT 0,
+            teaching_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_used TIMESTAMP
+        )
+    ''')
+    
+    # Teaching suggestions
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS teaching_suggestions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            message TEXT,
+            suggested_response TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     conn.commit()
     conn.close()
     logger.info("✅ Database ready")
@@ -80,6 +110,7 @@ def load_current_lesson():
         current_lesson_id = lesson['id']
         current_lesson_content = lesson['content']
         current_lesson_title = lesson['title']
+        logger.info(f"📚 Active lesson: {current_lesson_title}")
     else:
         current_lesson_id = None
         current_lesson_content = ""
@@ -96,12 +127,56 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ========== JAI HANDLER ==========
+# ========== JAI HANDLER WITH DATABASE LEARNING ==========
 
 class JAI:
     @staticmethod
+    def get_taught_response(message):
+        """Check if this question has been taught before"""
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute('''
+                SELECT response, times_used FROM bot 
+                WHERE text LIKE ? AND approved = 1 
+                ORDER BY times_used ASC LIMIT 1
+            ''', (f'%{message}%',))
+            result = cur.fetchone()
+            
+            if result:
+                # Update usage count
+                cur.execute('''
+                    UPDATE bot SET times_used = times_used + 1, last_used = NOW() 
+                    WHERE text LIKE ?
+                ''', (f'%{message}%',))
+                conn.commit()
+                conn.close()
+                return result['response']
+            conn.close()
+        except Exception as e:
+            logger.error(f"DB error in get_taught_response: {e}")
+        return None
+    
+    @staticmethod
+    def save_teaching_suggestion(user_id, message, response):
+        """Save a teaching suggestion for admin review"""
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute('''
+                INSERT INTO teaching_suggestions (user_id, message, suggested_response, created_at)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, message[:500], response[:500], datetime.now()))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            logger.error(f"DB error saving suggestion: {e}")
+            return False
+    
+    @staticmethod
     def generate_response(user_message, lesson_content="", lesson_title="", user_id="anonymous"):
-        # Save question
+        # Save question to chat history
         try:
             conn = get_db()
             cur = conn.cursor()
@@ -112,10 +187,16 @@ class JAI:
         except Exception as e:
             logger.error(f"DB error: {e}")
         
-        # Get response from personality file
+        # FIRST: Check if this question has been taught before
+        taught_response = JAI.get_taught_response(user_message)
+        if taught_response:
+            logger.info(f"📚 Used taught response for: {user_message[:50]}")
+            return taught_response
+        
+        # SECOND: Get response from personality file
         response = JAIPersonality.get_response(user_message, lesson_content, lesson_title)
         
-        # Save response
+        # Save response to chat history
         try:
             conn = get_db()
             cur = conn.cursor()
@@ -135,7 +216,168 @@ class JAI:
         
         return response
 
-# ========== ROUTES (same as before) ==========
+# ========== LEARNING SYSTEM ROUTES ==========
+
+@app.route('/admin/learn-page')
+@login_required
+def admin_learn_page():
+    return send_file('admin_learn.html')
+
+@app.route('/admin/learn', methods=['GET'])
+@login_required
+def learning_dashboard():
+    """Dashboard to review and approve learning suggestions"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Get pending suggestions
+    cur.execute("""
+        SELECT id, user_id, message, suggested_response, created_at 
+        FROM teaching_suggestions 
+        WHERE status = 'pending' 
+        ORDER BY created_at DESC
+    """)
+    pending = [dict(row) for row in cur.fetchall()]
+    
+    # Get approved Q&A count
+    cur.execute("SELECT COUNT(*) FROM bot WHERE approved = 1")
+    total_taught = cur.fetchone()[0]
+    
+    # Get learning stats
+    cur.execute("SELECT COUNT(*) FROM chat_history")
+    total_conversations = cur.fetchone()[0]
+    
+    conn.close()
+    
+    return jsonify({
+        'pending': pending,
+        'total_taught': total_taught,
+        'total_conversations': total_conversations
+    })
+
+@app.route('/admin/learn/approve/<int:suggestion_id>', methods=['POST'])
+@login_required
+def approve_learning(suggestion_id):
+    """Approve a teaching suggestion and add to bot table"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Get suggestion
+    cur.execute("SELECT message, suggested_response FROM teaching_suggestions WHERE id = ?", (suggestion_id,))
+    suggestion = cur.fetchone()
+    
+    if suggestion:
+        # Add to bot table
+        cur.execute("""
+            INSERT INTO bot (text, response, approved, times_used, teaching_date)
+            VALUES (?, ?, 1, 0, CURRENT_TIMESTAMP)
+        """, (suggestion['message'], suggestion['suggested_response']))
+        
+        # Mark as approved
+        cur.execute("UPDATE teaching_suggestions SET status = 'approved' WHERE id = ?", (suggestion_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Learning approved!'})
+    
+    conn.close()
+    return jsonify({'error': 'Suggestion not found'}), 404
+
+@app.route('/admin/learn/reject/<int:suggestion_id>', methods=['POST'])
+@login_required
+def reject_learning(suggestion_id):
+    """Reject a teaching suggestion"""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE teaching_suggestions SET status = 'rejected' WHERE id = ?", (suggestion_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Suggestion rejected'})
+
+@app.route('/admin/learn/add', methods=['POST'])
+@login_required
+def add_qa():
+    """Manually add a Q&A pair"""
+    data = request.json
+    question = data.get('question', '').strip()
+    answer = data.get('answer', '').strip()
+    
+    if not question or not answer:
+        return jsonify({'error': 'Question and answer required'}), 400
+    
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO bot (text, response, approved, times_used, teaching_date)
+        VALUES (?, ?, 1, 0, CURRENT_TIMESTAMP)
+    """, (question, answer))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Q&A added!'})
+
+@app.route('/admin/learn/auto', methods=['POST'])
+@login_required
+def auto_learn():
+    """Auto-learn from successful conversations"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Find conversations that appear multiple times (popular patterns)
+    cur.execute("""
+        SELECT message, response, COUNT(*) as count
+        FROM chat_history
+        WHERE response IS NOT NULL AND response != ''
+        GROUP BY message, response
+        HAVING COUNT(*) >= 2
+        ORDER BY count DESC
+        LIMIT 10
+    """)
+    
+    popular = [dict(row) for row in cur.fetchall()]
+    
+    # Auto-add to teaching suggestions for review
+    added = 0
+    for item in popular:
+        # Check if already exists in suggestions or bot
+        cur.execute("SELECT id FROM teaching_suggestions WHERE message = ? AND status = 'pending'", (item['message'],))
+        existing = cur.fetchone()
+        if not existing:
+            cur.execute("""
+                INSERT INTO teaching_suggestions (user_id, message, suggested_response, status, created_at)
+                VALUES ('auto', ?, ?, 'pending', CURRENT_TIMESTAMP)
+            """, (item['message'], item['response']))
+            added += 1
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Auto-learned {added} conversations',
+        'learned': len(popular)
+    })
+
+# ========== TEACH ENDPOINT FOR USERS ==========
+
+@app.route('/teach', methods=['POST'])
+def teach():
+    """Submit teaching suggestion"""
+    data = request.json
+    message = data.get('message', '').strip()
+    suggested_response = data.get('response', '').strip()
+    user_id = data.get('userId', 'anonymous')
+    
+    if not message or not suggested_response:
+        return jsonify({'error': 'Message and response required'}), 400
+    
+    success = JAI.save_teaching_suggestion(user_id, message, suggested_response)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'Thank you! JAI will learn from your suggestion.'})
+    else:
+        return jsonify({'error': 'Failed to save suggestion'}), 500
+
+# ========== MAIN ROUTES ==========
 
 @app.route('/')
 def index():
@@ -267,6 +509,8 @@ def health():
         'lesson_loaded': current_lesson_id is not None,
         'lesson': current_lesson_title
     })
+
+# ========== INITIALIZATION ==========
 
 setup_database()
 load_current_lesson()
