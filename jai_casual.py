@@ -1,5 +1,5 @@
 """JAI - Casual Conversation Responses
-Additional casual user statements to handle everyday chat naturally.
+Handles everyday chat, random statements, and natural conversation flow.
 """
 
 import random
@@ -194,6 +194,16 @@ class JAICasual:
                 "Gratitude changes everything. What's one thing you're thankful for?",
                 "I love that. Tell me what's filling your heart today.",
                 "That's the energy. What are you appreciating right now?"
+            ]
+            return random.choice(responses)
+        
+        # ========== "Just chatting" ==========
+        if any(j in msg for j in ["just chatting", "just talking", "nothing much", "just saying hi", "just wanted to talk"]):
+            responses = [
+                "I'm glad you did. Sometimes just saying hi is enough. How's life treating you today?",
+                "I appreciate you checking in. What's the vibe today?",
+                "Always good to hear from you. What's new? Anything exciting?",
+                "I enjoy our talks. What's on your mind today?"
             ]
             return random.choice(responses)
         
