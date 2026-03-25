@@ -1,6 +1,5 @@
 """JAI - Joshua's Artificial Intelligence
 Your companion, coach, friend, calculator, and calendar.
-Now with universal conversational ability — JAI can respond to anything naturally.
 """
 
 import random
@@ -27,39 +26,24 @@ class JAIPersonality:
         topics = []
         msg = message.lower()
         
-        # Work/career topics
         if any(w in msg for w in ["job", "work", "career", "office", "boss", "colleague"]):
             topics.append("work")
         if any(p in msg for p in ["promoted", "raise", "new job", "hired", "interview", "senior"]):
             topics.append("career_milestone")
-        
-        # Business/entrepreneurship
         if any(b in msg for b in ["business", "startup", "company", "venture", "entrepreneur"]):
             topics.append("business")
-        
-        # Life/emotional topics
         if any(e in msg for e in ["happy", "excited", "great", "wonderful", "amazing", "blessed"]):
             topics.append("positive")
         if any(s in msg for s in ["sad", "tired", "lonely", "stressed", "angry", "frustrated", "overwhelmed"]):
             topics.append("struggle")
-        
-        # Relationship topics
         if any(r in msg for r in ["girlfriend", "boyfriend", "love", "dating", "marriage", "partner", "crush"]):
             topics.append("relationship")
-        
-        # Family topics
         if any(f in msg for f in ["mom", "dad", "family", "parents", "sibling", "brother", "sister", "mother", "father"]):
             topics.append("family")
-        
-        # Dream/aspiration topics
         if any(d in msg for d in ["dream", "goal", "future", "want to be", "vision", "aspire", "ambition"]):
             topics.append("dream")
-        
-        # Nigerian context
         if any(n in msg for n in ["nigeria", "naija", "lagos", "abuja", "village", "yoruba", "igbo", "hausa"]):
             topics.append("nigerian")
-        
-        # Question detection
         if "?" in message:
             topics.append("question")
         
@@ -70,7 +54,6 @@ class JAIPersonality:
         """Generate response based on context and topics"""
         msg = message.lower()
         
-        # ========== CAREER MILESTONES ==========
         if "career_milestone" in topics and ("job" in msg or "hired" in msg or "new job" in msg):
             return random.choice([
                 "That's amazing! 🎉 Congratulations! Tell me about the job — what will you be doing?",
@@ -86,7 +69,6 @@ class JAIPersonality:
                 "I love to hear it. More responsibility, more growth. Proud of you. What changed?"
             ])
         
-        # ========== BUSINESS ==========
         if "business" in topics:
             return random.choice([
                 "That's a huge step! 🚀 What kind of business? Tell me everything.",
@@ -95,7 +77,6 @@ class JAIPersonality:
                 "I love that! What inspired you to start this business?"
             ])
         
-        # ========== POSITIVE EMOTIONS ==========
         if "positive" in topics and "question" not in topics:
             if any(e in msg for e in ["job", "work", "business", "project", "achievement"]):
                 return random.choice([
@@ -110,7 +91,6 @@ class JAIPersonality:
                     "I'm glad you're feeling that way. What's the good news?"
                 ])
         
-        # ========== STRUGGLES / EMOTIONAL SUPPORT ==========
         if "struggle" in topics:
             if "work" in topics:
                 return random.choice([
@@ -137,7 +117,6 @@ class JAIPersonality:
                     "I'm here for you. Tell me more about what you're feeling."
                 ])
         
-        # ========== RELATIONSHIPS ==========
         if "relationship" in topics:
             return random.choice([
                 "Love is beautiful, but it can also be confusing. What's on your heart about this?",
@@ -146,7 +125,6 @@ class JAIPersonality:
                 "That's a big part of life. How are you feeling about it?"
             ])
         
-        # ========== FAMILY ==========
         if "family" in topics:
             return random.choice([
                 "Family is everything. How's your relationship with yours right now?",
@@ -155,7 +133,6 @@ class JAIPersonality:
                 "Family love is different. What's on your mind?"
             ])
         
-        # ========== DREAMS / GOALS ==========
         if "dream" in topics:
             return random.choice([
                 "Tell me about your dream. What keeps you awake at night — in a good way? I'm listening.",
@@ -164,7 +141,6 @@ class JAIPersonality:
                 "I love hearing about people's dreams. What's that one thing you really want to achieve?"
             ])
         
-        # ========== NIGERIAN CONTEXT ==========
         if "nigerian" in topics:
             return random.choice([
                 "Ah, Nigeria. Where we build with less and still rise. What's your Naija dream?",
@@ -173,11 +149,9 @@ class JAIPersonality:
                 "Nigerians are some of the most resilient people I know. What's your story?"
             ])
         
-        # ========== MOTIVATION ==========
         if any(m in msg for m in ["motivate", "encourage", "inspire", "keep going"]):
             return "I believe in you. Joshua started with a phone and a dream. You have more than that. What's the smallest step you can take today? Start there."
         
-        # ========== QUESTIONS (GENERIC) ==========
         if "question" in topics:
             return random.choice([
                 "That's a good question. What do you think?",
@@ -195,7 +169,7 @@ class JAIPersonality:
         now = datetime.now()
         hour = now.hour
         
-        # ========== TIME-BASED GREETINGS ==========
+        # TIME-BASED GREETINGS
         if any(g in msg for g in ["good morning", "morning", "gm"]):
             if hour < 12:
                 return "Good morning! 🌅 Hope you slept well. What's on your agenda today? Or are we taking it slow?"
@@ -211,7 +185,7 @@ class JAIPersonality:
         if any(g in msg for g in ["good night", "night", "gn"]):
             return "Good night! 🌙 Rest well. Tomorrow is another chance. You did enough today. Sleep tight!"
         
-        # ========== CASUAL GREETINGS ==========
+        # CASUAL GREETINGS
         if any(g in msg for g in ["hi", "hello", "hey", "howdy", "sup", "yo", "wassup", "what's up", "whats up"]):
             greetings = [
                 "Hey! What's good? You okay today?",
@@ -223,12 +197,12 @@ class JAIPersonality:
             ]
             return random.choice(greetings)
         
-        # ========== CASUAL USER STATEMENTS ==========
+        # CASUAL USER STATEMENTS (from jai_casual)
         casual_response = JAICasual.get_casual_response(message)
         if casual_response:
             return casual_response
         
-        # ========== HOW ARE YOU? ==========
+        # HOW ARE YOU?
         if any(h in msg for h in ["how are you", "how are you doing", "how's life", "how goes it", "how you doing"]):
             responses = [
                 "I'm good! Just been here, thinking about life. How are you really doing though?",
@@ -239,7 +213,7 @@ class JAIPersonality:
             ]
             return random.choice(responses)
         
-        # ========== WHAT'S UP? ==========
+        # WHAT'S UP?
         if any(w in msg for w in ["what's up", "whats up", "what's happening", "what's going on"]):
             responses = [
                 "Not much, just waiting for you to tell me what's on your mind. What's up with you?",
@@ -250,7 +224,7 @@ class JAIPersonality:
             ]
             return random.choice(responses)
         
-        # ========== I'M GOOD / I'M OKAY ==========
+        # I'M GOOD / I'M OKAY
         if any(i in msg for i in ["i'm good", "i'm okay", "i'm fine", "doing good", "all good", "i'm alright"]):
             responses = [
                 "Glad to hear that! 😊 What's been going well?",
@@ -261,7 +235,7 @@ class JAIPersonality:
             ]
             return random.choice(responses)
         
-        # ========== WHAT DID YOU DO TODAY? ==========
+        # WHAT DID YOU DO TODAY?
         if any(d in msg for d in ["what did you do", "what have you been up to"]):
             responses = [
                 "I've been here, talking to people like you, helping with math and dates. What about you? What did YOU do today?",
@@ -271,7 +245,7 @@ class JAIPersonality:
             ]
             return random.choice(responses)
         
-        # ========== TELL ME SOMETHING INTERESTING ==========
+        # TELL ME SOMETHING INTERESTING
         if any(t in msg for t in ["tell me something", "say something interesting", "tell me a fact", "interesting"]):
             facts = [
                 "Did you know? Nigeria has over 500 languages. Imagine the stories each one holds.",
@@ -283,7 +257,7 @@ class JAIPersonality:
             ]
             return random.choice(facts) + " Anything else you want to know?"
         
-        # ========== TELL ME A JOKE ==========
+        # TELL ME A JOKE
         if any(j in msg for j in ["tell me a joke", "say something funny", "make me laugh", "funny"]):
             jokes = [
                 "Why do programmers prefer dark mode? Because light attracts bugs! 😄",
@@ -295,7 +269,7 @@ class JAIPersonality:
             ]
             return random.choice(jokes) + " Want another? Or should we get back to serious stuff?"
         
-        # ========== CALCULATOR ==========
+        # CALCULATOR
         if any(c in msg for c in ["+", "-", "*", "/", "%"]) or any(p in msg for p in ["calculate", "what is", "how much is"]):
             numbers = re.findall(r"\d+", message)
             if len(numbers) >= 2:
@@ -305,7 +279,7 @@ class JAIPersonality:
                 if result:
                     return result + "\n\nAnything else? Math, date, or just chat?"
         
-        # ========== CURRENCY ==========
+        # CURRENCY
         if any(c in msg for c in ["usd to ngn", "dollar to naira", "eur to ngn", "pound to naira", "convert"]):
             amount_match = re.search(r"(\d+)", message)
             if amount_match:
@@ -318,7 +292,7 @@ class JAIPersonality:
                     return f"💰 £{amount} GBP = ₦{amount * 1900:,} NGN (approx)"
             return "💰 Just tell me the amount. Like 'Convert 100 USD to NGN'"
         
-        # ========== DATE / TIME ==========
+        # DATE / TIME
         if any(d in msg for d in ["date", "today", "day", "time"]):
             if "date" in msg or "today" in msg:
                 return f"📅 Today is {now.strftime('%A, %B %d, %Y')}. What are you doing with it?"
@@ -327,21 +301,21 @@ class JAIPersonality:
             if "day" in msg:
                 return f"📅 It's {now.strftime('%A')}. What's one thing you want to get done today?"
         
-        # ========== LESSON-RELATED ==========
+        # LESSON-RELATED
         if lesson_title != "No lesson uploaded" and any(l in msg for l in ["lesson", "learn", "teach", "cyber", "security", "malware", "hack"]):
             return f"Today's lesson: '{lesson_title}'. Want to dive in? Or we can just chat about it. Your pace."
         
-        # ========== CONTEXT-AWARE RESPONSE ==========
+        # CONTEXT-AWARE RESPONSE
         topics = JAIPersonality.extract_topics(message)
         contextual = JAIPersonality.generate_contextual_response(message, topics, lesson_title)
         if contextual:
             return contextual
         
-        # ========== THANK YOU ==========
+        # THANK YOU
         if any(t in msg for t in ["thank you", "thanks", "appreciate it", "thx"]):
             return "You're welcome! 😊 That's what I'm here for. Anything else you need? Or just vibing?"
         
-        # ========== CASUAL GOODBYES ==========
+        # CASUAL GOODBYES
         if any(b in msg for b in ["bye", "goodbye", "see you", "later", "talk later", "catch you later"]):
             byes = [
                 "Alright! Take care of yourself. Come back anytime — I'll be here.",
@@ -351,22 +325,13 @@ class JAIPersonality:
             ]
             return random.choice(byes)
         
-        # ========== RANDOM CHAT ==========
-        if any(r in msg for r in ["just chatting", "nothing much", "just saying hi", "just wanted to talk"]):
-            responses = [
-                "I'm glad you did. Sometimes just saying hi is enough. How's life treating you today?",
-                "I appreciate you checking in. What's the vibe today?",
-                "Always good to hear from you. What's new? Anything exciting?"
-            ]
-            return random.choice(responses)
-        
-        # ======== UNIVERSAL ==== #
-universal_responses = [
+        # UNIVERSAL CONVERSATIONAL RESPONSE
+        universal_responses = [
             "I'm here. What's on your mind? Work? Life? Something random?",
             "What's good? You seem like you've got something to say. I'm listening.",
             "Yo! What's happening? Need math? Need to talk? Need a random fact?",
             "Tell me what's going on. No small talk needed. What's real for you right now?",
-            "I'm all ears. Or... well, all code. But you know what I mean. Talk to me.",
+            "I'm all ears. Talk to me.",
             "How's your heart today? That's the real question.",
             "That's interesting. Tell me more.",
             "I hear you. What else is on your mind?",
