@@ -1,12 +1,15 @@
 import os
 import sqlite3
 import logging
+import base64
+import io
 from flask import Flask, request, jsonify, send_file, session, redirect
 from flask_cors import CORS
 import PyPDF2
 from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime
+from gtts import gTTS
 
 # Import JAI's personality
 from jai_responses import JAIPersonality
@@ -126,6 +129,39 @@ def login_required(f):
             return redirect('/admin/login-page')
         return f(*args, **kwargs)
     return decorated
+
+# ========== TEXT-TO-SPEECH ==========
+
+@app.route('/speak', methods=['POST'])
+def speak():
+    """Convert text to speech and return audio"""
+    data = request.json
+    text = data.get('text', '').strip()
+    
+    if not text:
+        return jsonify({'error': 'Text required'}), 400
+    
+    try:
+        # Create speech using gTTS
+        tts = gTTS(text=text, lang='en', slow=False)
+        
+        # Save to memory buffer
+        audio_buffer = io.BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        
+        # Convert to base64 for frontend
+        audio_base64 = base64.b64encode(audio_buffer.read()).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'audio': audio_base64,
+            'text': text[:500]
+        })
+        
+    except Exception as e:
+        logger.error(f"TTS error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # ========== JAI HANDLER WITH DATABASE LEARNING ==========
 
