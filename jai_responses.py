@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from jai_casual import JAICasual
 from jai_natural import JAINatural
+from jai_conversational import JAIConversational
 
 class JAIPersonality:
     
@@ -47,15 +48,20 @@ class JAIPersonality:
                 return "💰 I can convert USD, EUR, GBP to NGN. Try '100 USD to NGN'."
             return "Yes! 😊 I can calculate, check dates, convert currency, or just chat."
         
-        # ========== CASUAL USER STATEMENTS (from jai_casual) ==========
+        # ========== CASUAL USER STATEMENTS (jai_casual) ==========
         casual = JAICasual.get_casual_response(message)
         if casual:
             return casual
         
-        # ========== NATURAL CONVERSATION (from jai_natural) ==========
+        # ========== NATURAL CONVERSATION (jai_natural) ==========
         natural = JAINatural.get_natural_response(message)
         if natural:
             return natural
+        
+        # ========== REAL CONVERSATION FLOW (jai_conversational) ==========
+        conv = JAIConversational.get_response(message)
+        if conv:
+            return conv
         
         # ========== HOW ARE YOU? ==========
         if any(h in msg for h in ["how are you", "how you doing"]):
